@@ -8,7 +8,8 @@ const fs = require("fs");
 function setupStaticFileServing(app) {
   const streamsPath = path.join(__dirname, "..", "streams");
   
-  console.log(`Setting up static file serving for streams directory`);
+  console.log(`Setting up static file serving for streams directory: ${streamsPath}`);
+  console.log(`Streams path exists: ${fs.existsSync(streamsPath)}`);
   
   // Handle individual stream files explicitly
   app.get("/streams/:streamName/:filename", (req, res) => {
@@ -16,29 +17,75 @@ function setupStaticFileServing(app) {
     const filename = req.params.filename;
     const filePath = path.join(streamsPath, streamName, filename);
     
-    console.log(`Stream file request: ${streamName}/${filename}`);
+    // SECURITY: Remove sensitive path information from logs
+    console.log(`Request for stream: ${streamName}/${filename}`);
     
     // CRITICAL: Check for path traversal attacks
+    const normalizedPath = path.normalize(filePath);
     const resolvedStreamsPath = path.resolve(streamsPath);
     const resolvedFilePath = path.resolve(filePath);
     
     // Prevent path traversal attacks
     if (!resolvedFilePath.startsWith(resolvedStreamsPath)) {
-      console.error(`⚠️ BLOCKED: Path traversal attempt detected`);
+      console.error(`⚠️ BLOCKED: Path traversal attempt detected - ${filePath}`);
       return res.status(403).json({
         error: 'Access denied',
         message: 'Invalid file path'
       });
     }
     
+    // Debug: List what's actually in the stream directory
+    try {
+      const streamDir = path.join(streamsPath, streamName);
+      console.log(`Stream directory: ${streamDir}`);
+      console.log(`Stream dir exists: ${fs.existsSync(streamDir)}`);
+      
+      if (fs.existsSync(streamDir)) {
+        const files = fs.readdirSync(streamDir);
+        console.log(`Files in ${streamDir}:`, files);
+        console.log(`Looking for: ${filename}`);
+        console.log(`Exact match found: ${files.includes(filename)}`);
+        
+        // Case-insensitive search
+        const lowerFilename = filename.toLowerCase();
+        const caseInsensitiveMatch = files.find(f => f.toLowerCase() === lowerFilename);
+        if (caseInsensitiveMatch && caseInsensitiveMatch !== filename) {
+          console.warn(`⚠️ CASE MISMATCH: Requested '${filename}' but found '${caseInsensitiveMatch}'`);
+          console.warn(`This might be a case-sensitivity issue!`);
+        }
+        
+        // Check for similar filenames
+        const matchingFiles = files.filter(f => 
+          f.toLowerCase().includes(lowerFilename) ||
+          f.toLowerCase().includes('stream') ||
+          f.toLowerCase().includes('.m3u8')
+        );
+        if (matchingFiles.length > 0 && matchingFiles.length <= 5) {
+          console.log(`Similar files found:`, matchingFiles);
+        }
+      } else {
+        console.error(`Stream directory does NOT exist: ${streamDir}`);
+        // List parent directory contents
+        const parentDir = path.dirname(streamDir);
+        if (fs.existsSync(parentDir)) {
+          const parentFiles = fs.readdirSync(parentDir);
+          console.log(`Parent directory (${parentDir}) contents:`, parentFiles);
+        }
+      }
+    } catch (dirErr) {
+      console.error(`Error listing directory:`, dirErr.message);
+    }
+    
     if (!fs.existsSync(filePath)) {
+      // SECURITY: Don't expose detailed file system information
+      console.error(`Stream file not found: ${streamName}/${filename}`);
       return res.status(404).json({
         error: 'File not found',
         message: 'The requested stream file does not exist'
       });
     }
     
-    console.log(`Sending stream file...`);
+    console.log(`\n✓ File found, preparing to send...`);
     
     // Set proper MIME types
     if (filename.endsWith('.m3u8')) {
@@ -56,7 +103,8 @@ function setupStaticFileServing(app) {
     res.setHeader('Cache-Control', 'no-cache'); // Don't cache HLS playlists
     
     // Send the file
-    console.log(`Stream file: ${streamName}/${filename}`);
+    console.log(`Sending file: ${filePath}`);
+    console.log(`=========================================\n`);
     
     res.sendFile(filePath, (err) => {
       if (err) {
@@ -65,7 +113,7 @@ function setupStaticFileServing(app) {
           res.status(500).json({ error: 'Error sending file' });
         }
       } else {
-        console.log(`Stream file sent`);
+        console.log(`Stream file sent: ${streamName}/${filename}`);
       }
     });
   });

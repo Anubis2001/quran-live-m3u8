@@ -264,8 +264,16 @@ function startStream(name, filePath) {
         const stats = fs.statSync(filePath);
         console.log(`  ✓ File created (${stats.size} bytes)`);
       } else {
-        // File doesn't exist - generic message only
-        console.log(`  ℹ️ Waiting for file creation...`);
+        // File doesn't exist - show what DOES exist
+        console.log(`  ℹ️ Files in directory:`);
+        try {
+          const files = fs.readdirSync(dir);
+          files.forEach(f => {
+            const fp = path.join(dir, f);
+            const stats = fs.statSync(fp);
+            console.log(`    ${f} (${stats.size} bytes, ${stats.isDirectory() ? 'DIR' : 'FILE'})`);
+          });
+        } catch (e) {}
       }
     }, delayMs);
   };
@@ -276,33 +284,107 @@ function startStream(name, filePath) {
   checkFileExists(path.join(dir, 'seg_000.ts'), 'First segment (3s)', 3000);
   checkFileExists(path.join(dir, 'seg_000.ts'), 'First segment (6s)', 6000);
   
-  // Show log file contents after 8 seconds (minimal output)
+  // Show log file contents after 8 seconds
   setTimeout(() => {
-    console.log(`\n📋 Checking FFmpeg status...`);
+    console.log(`\n📋 Reading FFmpeg log file...`);
     try {
       if (fs.existsSync(logPath)) {
         const logContent = fs.readFileSync(logPath, 'utf8');
+        console.log(`Log file exists (${logContent.length} chars):`);
+        console.log(logContent.split('\n').map(l => `  ${l}`).join('\n'));
         
         // Check for errors in log
         if (logContent.toLowerCase().includes('error') || logContent.toLowerCase().includes('invalid')) {
-          console.error(`\n⚠️ ERRORS FOUND IN LOG! Check log file for details.`);
+          console.error(`\n⚠️ ERRORS FOUND IN LOG!`);
         } else {
-          console.log(`\n✓ FFmpeg running normally`);
+          console.log(`\n✓ No obvious errors in log`);
         }
       } else {
-        console.error(`❌ Log file not created`);
+        console.error(`❌ Log file not created: ${logPath}`);
       }
     } catch (logErr) {
       console.error(`Error reading log:`, logErr.message);
     }
     
-    // Success check only
+    // Final directory listing
+    console.log(`\n📁 Final directory state:`);
     try {
       const finalFiles = fs.readdirSync(dir);
+      console.log(`Files in ${dir}:`, finalFiles.length);
+      finalFiles.forEach(f => {
+        const fp = path.join(dir, f);
+        const stats = fs.statSync(fp);
+        console.log(`  ${f}: ${stats.size} bytes`);
+      });
+      
+      // Success check
       if (finalFiles.some(f => f.endsWith('.m3u8'))) {
         console.log(`\n🎉 SUCCESS! HLS files created!`);
       } else {
-        console.error(`\n❌ NO M3U8 FILE CREATED! Check logs for details.`);
+        console.error(`\n❌ STILL NO M3U8 FILE! Check logs above.`);
+        console.log(`\n⚠️ FALLBACK: Switching to native nohup command as backup...\n`);
+        
+        // FALLBACK: Try the native nohup approach if spawn didn't work
+        const ffmpegNativeCommand = [
+          'cd', `"${dir}"`, '&&',
+          'nohup', 'ffmpeg',
+          '-re',
+          '-stream_loop', '-1',
+          '-i', `"${filePath}"`,
+          '-vn',
+          '-c:a', 'copy',
+          '-hls_time', '3',
+          '-hls_list_size', '6',
+          '-hls_flags', 'delete_segments+round_durations',
+          '-hls_segment_filename', `"${outputSegment}"`,
+          '-hls_segment_type', 'mpegts',
+          `"${outputPlaylist}"`,
+          '> "${dir}/ffmpeg_native_fallback.log"', '2>&1', '&', 'echo', '$!'
+        ].join(' ');
+        
+        console.log(`Executing fallback command: ${ffmpegNativeCommand}\n`);
+        
+        exec(ffmpegNativeCommand, (fallbackError, fallbackStdout, fallbackStderr) => {
+          if (fallbackError) {
+            console.error(`❌ Fallback command failed:`, fallbackError.message);
+            return;
+          }
+          
+          const fallbackPid = parseInt(fallbackStdout.trim());
+          console.log(`✅ Fallback FFmpeg started with PID: ${fallbackPid}`);
+          
+          // Update running streams with fallback process
+          runningStreams[name] = { 
+            pid: fallbackPid,
+            isNative: true,
+            startTime: new Date(),
+            outputPlaylist: outputPlaylist,
+            outputSegment: outputSegment,
+            workingDir: dir,
+            logFile: path.join(dir, 'ffmpeg_native_fallback.log'),
+            status: 'running_fallback'
+          };
+          
+          // Monitor fallback file creation
+          setTimeout(() => {
+            console.log(`\n📋 Checking fallback results...`);
+            try {
+              const files = fs.readdirSync(dir);
+              console.log(`Files in ${dir}:`, files.length);
+              files.forEach(f => {
+                const fp = path.join(dir, f);
+                const stats = fs.statSync(fp);
+                console.log(`  ${f}: ${stats.size} bytes`);
+              });
+              
+              if (files.some(f => f.endsWith('.m3u8'))) {
+                console.log(`\n🎉 SUCCESS with fallback method!`);
+              } else {
+                console.error(`\n❌ FALLBACK ALSO FAILED! Manual intervention required.`);
+              }
+            } catch (e) {}
+          }, 5000);
+        });
       }
     } catch (e) {}
   }, 8000);
@@ -559,7 +641,10 @@ function restoreStreams() {
  */
 async function startYoutubeStream(name, youtubeUrl, cookiesPath) {
   console.log(`\n========== STARTING YOUTUBE STREAM: ${name} ==========`);
-  console.log(`Processing YouTube audio stream request`);
+  console.log(`YouTube URL: ${youtubeUrl}`);
+  if (cookiesPath) {
+    console.log(`Using cookies file: ${cookiesPath}`);
+  }
   
   // Create stream directory
   const streamDir = path.join(__dirname, '..', 'streams', name);
@@ -599,16 +684,20 @@ async function startYoutubeStream(name, youtubeUrl, cookiesPath) {
   // Validate cookies file if provided
   if (cookiesPath) {
     if (!fs.existsSync(cookiesPath)) {
-      console.error(`⚠️ Cookies file not found`);
+      console.error(`⚠️ Cookies file not found: ${cookiesPath}`);
       console.error(`Continuing without authentication...`);
       cookiesPath = null;
     } else {
       try {
-        // Basic validation - check if it's readable
-        fs.accessSync(cookiesPath, fs.constants.R_OK);
-        console.log(`✓ Cookies file validated successfully`);
+        // Basic validation - check if it's a valid netscape cookie format
+        const cookiesContent = fs.readFileSync(cookiesPath, 'utf8');
+        if (!cookiesContent.includes('# Netscape HTTP Cookie File') && !cookiesContent.trim().startsWith('#')) {
+          console.error(`⚠️ Cookies file may not be in correct Netscape format`);
+        } else {
+          console.log(`✓ Cookies file validated successfully`);
+        }
       } catch (cookieErr) {
-        console.error(`⚠️ Error reading cookies file`);
+        console.error(`⚠️ Error reading cookies file:`, cookieErr.message);
         cookiesPath = null;
       }
     }
@@ -618,7 +707,7 @@ async function startYoutubeStream(name, youtubeUrl, cookiesPath) {
   const audioOutput = path.join(streamDir, 'audio.mp3');
   
   console.log(`\n📥 Downloading audio from YouTube...`);
-  console.log(`Output will be saved to stream directory\n`);
+  console.log(`Output file: ${audioOutput}\n`);
   
   // Build download command with optional cookies support
   const downloadCommandParts = [
@@ -633,7 +722,7 @@ async function startYoutubeStream(name, youtubeUrl, cookiesPath) {
   
   // Add cookies parameter if provided
   if (cookiesPath) {
-    downloadCommandParts.push('--cookies', `"${path.basename(cookiesPath)}"`);
+    downloadCommandParts.push('--cookies', `"${cookiesPath}"`);
     console.log(`🍪 Using cookies authentication`);
   }
   
@@ -652,6 +741,7 @@ async function startYoutubeStream(name, youtubeUrl, cookiesPath) {
       }
       
       console.log(`✅ Audio downloaded successfully!`);
+      console.log(`stdout:`, stdout);
       
       // Verify the audio file was created
       if (!fs.existsSync(audioOutput)) {
@@ -662,13 +752,14 @@ async function startYoutubeStream(name, youtubeUrl, cookiesPath) {
       const stats = fs.statSync(audioOutput);
       console.log(`✓ Audio file size: ${(stats.size / 1024 / 1024).toFixed(2)} MB`);
       
-      // Save metadata for persistence (hide full path)
+      // Save metadata for persistence
       const streamsMetadata = loadStreamsMetadata();
       const existingIndex = streamsMetadata.findIndex(s => s.name === name);
       const metadata = {
         name: name,
-        filePath: '[protected]',
+        filePath: audioOutput,
         source: 'youtube',
+        url: youtubeUrl,
         createdAt: new Date().toISOString()
       };
       
@@ -686,7 +777,7 @@ async function startYoutubeStream(name, youtubeUrl, cookiesPath) {
       startStream(name, audioOutput);
       
       console.log(`\n🎉 YouTube audio stream started successfully!`);
-      console.log(`Stream will be available at: /streams/${name}/stream.m3u8\n`);
+      console.log(`Stream URL: http://[server-ip]:8300/streams/${name}/stream.m3u8\n`);
       
       resolve({ success: true, audioFile: audioOutput });
     });

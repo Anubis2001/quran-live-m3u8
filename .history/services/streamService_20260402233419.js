@@ -559,7 +559,10 @@ function restoreStreams() {
  */
 async function startYoutubeStream(name, youtubeUrl, cookiesPath) {
   console.log(`\n========== STARTING YOUTUBE STREAM: ${name} ==========`);
-  console.log(`Processing YouTube audio stream request`);
+  console.log(`YouTube URL: ${youtubeUrl}`);
+  if (cookiesPath) {
+    console.log(`Using cookies file: ${cookiesPath}`);
+  }
   
   // Create stream directory
   const streamDir = path.join(__dirname, '..', 'streams', name);
@@ -599,16 +602,20 @@ async function startYoutubeStream(name, youtubeUrl, cookiesPath) {
   // Validate cookies file if provided
   if (cookiesPath) {
     if (!fs.existsSync(cookiesPath)) {
-      console.error(`⚠️ Cookies file not found`);
+      console.error(`⚠️ Cookies file not found: ${cookiesPath}`);
       console.error(`Continuing without authentication...`);
       cookiesPath = null;
     } else {
       try {
-        // Basic validation - check if it's readable
-        fs.accessSync(cookiesPath, fs.constants.R_OK);
-        console.log(`✓ Cookies file validated successfully`);
+        // Basic validation - check if it's a valid netscape cookie format
+        const cookiesContent = fs.readFileSync(cookiesPath, 'utf8');
+        if (!cookiesContent.includes('# Netscape HTTP Cookie File') && !cookiesContent.trim().startsWith('#')) {
+          console.error(`⚠️ Cookies file may not be in correct Netscape format`);
+        } else {
+          console.log(`✓ Cookies file validated successfully`);
+        }
       } catch (cookieErr) {
-        console.error(`⚠️ Error reading cookies file`);
+        console.error(`⚠️ Error reading cookies file:`, cookieErr.message);
         cookiesPath = null;
       }
     }
@@ -618,7 +625,7 @@ async function startYoutubeStream(name, youtubeUrl, cookiesPath) {
   const audioOutput = path.join(streamDir, 'audio.mp3');
   
   console.log(`\n📥 Downloading audio from YouTube...`);
-  console.log(`Output will be saved to stream directory\n`);
+  console.log(`Output file: ${audioOutput}\n`);
   
   // Build download command with optional cookies support
   const downloadCommandParts = [
@@ -633,7 +640,7 @@ async function startYoutubeStream(name, youtubeUrl, cookiesPath) {
   
   // Add cookies parameter if provided
   if (cookiesPath) {
-    downloadCommandParts.push('--cookies', `"${path.basename(cookiesPath)}"`);
+    downloadCommandParts.push('--cookies', `"${cookiesPath}"`);
     console.log(`🍪 Using cookies authentication`);
   }
   
@@ -652,6 +659,7 @@ async function startYoutubeStream(name, youtubeUrl, cookiesPath) {
       }
       
       console.log(`✅ Audio downloaded successfully!`);
+      console.log(`stdout:`, stdout);
       
       // Verify the audio file was created
       if (!fs.existsSync(audioOutput)) {
@@ -662,13 +670,14 @@ async function startYoutubeStream(name, youtubeUrl, cookiesPath) {
       const stats = fs.statSync(audioOutput);
       console.log(`✓ Audio file size: ${(stats.size / 1024 / 1024).toFixed(2)} MB`);
       
-      // Save metadata for persistence (hide full path)
+      // Save metadata for persistence
       const streamsMetadata = loadStreamsMetadata();
       const existingIndex = streamsMetadata.findIndex(s => s.name === name);
       const metadata = {
         name: name,
-        filePath: '[protected]',
+        filePath: audioOutput,
         source: 'youtube',
+        url: youtubeUrl,
         createdAt: new Date().toISOString()
       };
       
@@ -686,7 +695,7 @@ async function startYoutubeStream(name, youtubeUrl, cookiesPath) {
       startStream(name, audioOutput);
       
       console.log(`\n🎉 YouTube audio stream started successfully!`);
-      console.log(`Stream will be available at: /streams/${name}/stream.m3u8\n`);
+      console.log(`Stream URL: http://[server-ip]:8300/streams/${name}/stream.m3u8\n`);
       
       resolve({ success: true, audioFile: audioOutput });
     });
