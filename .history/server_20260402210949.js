@@ -17,36 +17,6 @@ if (!fs.existsSync(path.join(__dirname, "uploads"))) {
 const streamsPath = path.join(__dirname, "streams");
 console.log(`Setting up static file serving for streams directory: ${streamsPath}`);
 console.log(`Streams path exists: ${fs.existsSync(streamsPath)}`);
-console.log(`__dirname resolved to: ${__dirname}`);
-console.log(`Process working directory: ${process.cwd()}`);
-
-// Debug endpoint to check streams folder structure
-app.get("/__debug/streams", (req, res) => {
-  const debugInfo = {
-    dirname: __dirname,
-    cwd: process.cwd(),
-    streamsPath: streamsPath,
-    streamsExists: fs.existsSync(streamsPath),
-    streams: []
-  };
-  
-  if (fs.existsSync(streamsPath)) {
-    const streamDirs = fs.readdirSync(streamsPath);
-    streamDirs.forEach(dir => {
-      const dirPath = path.join(streamsPath, dir);
-      if (fs.lstatSync(dirPath).isDirectory()) {
-        const files = fs.readdirSync(dirPath);
-        debugInfo.streams.push({
-          name: dir,
-          path: dirPath,
-          files: files
-        });
-      }
-    });
-  }
-  
-  res.json(debugInfo);
-});
 
 // Handle individual stream files explicitly
 app.get("/streams/:streamName/:filename", (req, res) => {
@@ -55,18 +25,11 @@ app.get("/streams/:streamName/:filename", (req, res) => {
   const filePath = path.join(streamsPath, streamName, filename);
   
   console.log(`\n========== STREAM FILE REQUEST ==========`);
-  console.log(`Request URL: ${req.originalUrl}`);
-  console.log(`Request path: ${req.path}`);
-  console.log(`Params - streamName: ${streamName}, filename: ${filename}`);
-  console.log(`Full requested path: ${filePath}`);
+  console.log(`Request: /streams/${streamName}/${filename}`);
   console.log(`Base streams path: ${streamsPath}`);
+  console.log(`Resolved full path: ${filePath}`);
   console.log(`__dirname: ${__dirname}`);
   console.log(`File exists: ${fs.existsSync(filePath)}`);
-  
-  // CRITICAL: Check for path traversal attacks
-  const normalizedPath = path.normalize(filePath);
-  console.log(`Normalized path: ${normalizedPath}`);
-  console.log(`Path starts with streamsPath: ${normalizedPath.startsWith(path.resolve(streamsPath))}`);
   
   // Debug: List what's actually in the stream directory
   try {
@@ -77,33 +40,15 @@ app.get("/streams/:streamName/:filename", (req, res) => {
     if (fs.existsSync(streamDir)) {
       const files = fs.readdirSync(streamDir);
       console.log(`Files in ${streamDir}:`, files);
-      console.log(`Looking for: ${filename}`);
-      console.log(`Exact match found: ${files.includes(filename)}`);
       
-      // Case-insensitive search
-      const lowerFilename = filename.toLowerCase();
-      const caseInsensitiveMatch = files.find(f => f.toLowerCase() === lowerFilename);
-      if (caseInsensitiveMatch && caseInsensitiveMatch !== filename) {
-        console.warn(`⚠️ CASE MISMATCH: Requested '${filename}' but found '${caseInsensitiveMatch}'`);
-        console.warn(`This might be a case-sensitivity issue!`);
-      }
-      
-      // Check for similar filenames
+      // Check for similar filenames (case sensitivity)
       const matchingFiles = files.filter(f => 
-        f.toLowerCase().includes(lowerFilename) ||
+        f.toLowerCase().includes(filename.toLowerCase()) ||
         f.toLowerCase().includes('stream') ||
         f.toLowerCase().includes('.m3u8')
       );
-      if (matchingFiles.length > 0 && matchingFiles.length <= 5) {
-        console.log(`Similar files found:`, matchingFiles);
-      }
-    } else {
-      console.error(`Stream directory does NOT exist: ${streamDir}`);
-      // List parent directory contents
-      const parentDir = path.dirname(streamDir);
-      if (fs.existsSync(parentDir)) {
-        const parentFiles = fs.readdirSync(parentDir);
-        console.log(`Parent directory (${parentDir}) contents:`, parentFiles);
+      if (matchingFiles.length > 0) {
+        console.log(`Matching files found:`, matchingFiles);
       }
     }
   } catch (dirErr) {
@@ -118,8 +63,6 @@ app.get("/streams/:streamName/:filename", (req, res) => {
       streamName: streamName,
       filename: filename,
       basePath: streamsPath,
-      dirname: __dirname,
-      cwd: process.cwd(),
       hint: 'Check if the file exists and filename matches exactly (case-sensitive on Linux)'
     });
   }
@@ -158,7 +101,6 @@ app.get("/streams/:streamName/:filename", (req, res) => {
 });
 
 // Also keep the static middleware for segment files
-console.log(`Setting up static middleware for /streams route`);
 app.use("/streams", express.static(streamsPath, {
   dotfiles: 'ignore',
   etag: true,
@@ -167,15 +109,13 @@ app.use("/streams", express.static(streamsPath, {
   maxAge: '1s',
   redirect: false,
   setHeaders: (res, path, stat) => {
-    console.log(`Static middleware serving: ${path}`);
     if (path.endsWith('.m3u8')) {
       res.setHeader('Content-Type', 'application/vnd.apple.mpegurl');
     } else if (path.endsWith('.ts')) {
       res.setHeader('Content-Type', 'video/mp2t');
     }
     res.setHeader('Access-Control-Allow-Origin', '*');
-  },
-  fallthrough: true // Continue to next middleware if file not found
+  }
 }));
 
 // Serve public folder (dashboard.html, client.js, etc.) WITHOUT auth for scripts
@@ -344,10 +284,10 @@ app.post("/api/upload", upload.single("audio"), (req, res) => {
     console.log('Starting FFmpeg process for stream:', name);
     startStream(name, finalPath);
     
-    // Wait for FFmpeg to create the initial playlist file (up to 2 seconds)
+    // Wait for FFmpeg to create the initial playlist file (up to 5 seconds)
     console.log(`Waiting for stream.m3u8 to be created in ${streamDir}...`);
     let waitForPlaylist = 0;
-    const maxWaitTime = 2000; // 2 seconds
+    const maxWaitTime = 1500; // 1.5 seconds
     const checkInterval = 500; // Check every 500ms
     
     const waitForPlaylistCreation = () => {

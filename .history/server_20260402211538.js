@@ -55,18 +55,11 @@ app.get("/streams/:streamName/:filename", (req, res) => {
   const filePath = path.join(streamsPath, streamName, filename);
   
   console.log(`\n========== STREAM FILE REQUEST ==========`);
-  console.log(`Request URL: ${req.originalUrl}`);
-  console.log(`Request path: ${req.path}`);
-  console.log(`Params - streamName: ${streamName}, filename: ${filename}`);
-  console.log(`Full requested path: ${filePath}`);
+  console.log(`Request: /streams/${streamName}/${filename}`);
   console.log(`Base streams path: ${streamsPath}`);
+  console.log(`Resolved full path: ${filePath}`);
   console.log(`__dirname: ${__dirname}`);
   console.log(`File exists: ${fs.existsSync(filePath)}`);
-  
-  // CRITICAL: Check for path traversal attacks
-  const normalizedPath = path.normalize(filePath);
-  console.log(`Normalized path: ${normalizedPath}`);
-  console.log(`Path starts with streamsPath: ${normalizedPath.startsWith(path.resolve(streamsPath))}`);
   
   // Debug: List what's actually in the stream directory
   try {
@@ -77,33 +70,15 @@ app.get("/streams/:streamName/:filename", (req, res) => {
     if (fs.existsSync(streamDir)) {
       const files = fs.readdirSync(streamDir);
       console.log(`Files in ${streamDir}:`, files);
-      console.log(`Looking for: ${filename}`);
-      console.log(`Exact match found: ${files.includes(filename)}`);
       
-      // Case-insensitive search
-      const lowerFilename = filename.toLowerCase();
-      const caseInsensitiveMatch = files.find(f => f.toLowerCase() === lowerFilename);
-      if (caseInsensitiveMatch && caseInsensitiveMatch !== filename) {
-        console.warn(`⚠️ CASE MISMATCH: Requested '${filename}' but found '${caseInsensitiveMatch}'`);
-        console.warn(`This might be a case-sensitivity issue!`);
-      }
-      
-      // Check for similar filenames
+      // Check for similar filenames (case sensitivity)
       const matchingFiles = files.filter(f => 
-        f.toLowerCase().includes(lowerFilename) ||
+        f.toLowerCase().includes(filename.toLowerCase()) ||
         f.toLowerCase().includes('stream') ||
         f.toLowerCase().includes('.m3u8')
       );
-      if (matchingFiles.length > 0 && matchingFiles.length <= 5) {
-        console.log(`Similar files found:`, matchingFiles);
-      }
-    } else {
-      console.error(`Stream directory does NOT exist: ${streamDir}`);
-      // List parent directory contents
-      const parentDir = path.dirname(streamDir);
-      if (fs.existsSync(parentDir)) {
-        const parentFiles = fs.readdirSync(parentDir);
-        console.log(`Parent directory (${parentDir}) contents:`, parentFiles);
+      if (matchingFiles.length > 0) {
+        console.log(`Matching files found:`, matchingFiles);
       }
     }
   } catch (dirErr) {
@@ -118,8 +93,6 @@ app.get("/streams/:streamName/:filename", (req, res) => {
       streamName: streamName,
       filename: filename,
       basePath: streamsPath,
-      dirname: __dirname,
-      cwd: process.cwd(),
       hint: 'Check if the file exists and filename matches exactly (case-sensitive on Linux)'
     });
   }
