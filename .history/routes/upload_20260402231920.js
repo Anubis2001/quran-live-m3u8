@@ -1,4 +1,5 @@
 const express = require("express");
+const express = require("express");
 const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
@@ -111,15 +112,6 @@ router.post("/", upload.single("audio"), (req, res) => {
       };
       console.log('Upload completed successfully:', response);
       res.json(response);
-    }).catch((error) => {
-      console.error('Error waiting for playlist:', error);
-      // Still respond with success since FFmpeg is running
-      const baseUrl = `${req.protocol}://${req.get("host")}`;
-      res.json({ 
-        success: true,
-        message: "Stream created (playlist pending)",
-        streamUrl: `${baseUrl}/streams/${name}/stream.m3u8` 
-      });
     });
     
   } catch (error) {
