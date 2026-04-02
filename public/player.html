@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Quran Audio Player</title>
+
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
+<script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+
+<style>
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  ::-webkit-scrollbar-track {
+    background: #f1f5f9;
+    border-radius: 4px;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 4px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+  }
+  
+  /* Smooth transitions */
+  .transition-all {
+    transition-property: all;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    transition-duration: 200ms;
+  }
+  
+  /* Stream item hover effects */
+  .stream-item {
+    transition: all 0.2s ease-in-out;
+  }
+  .stream-item:hover {
+    transform: translateX(4px);
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    box-shadow: 0 10px 25px -5px rgba(102, 126, 234, 0.4);
+  }
+  
+  .stream-item.active {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    box-shadow: 0 10px 25px -5px rgba(102, 126, 234, 0.4);
+  }
+  
+  .stream-item.active .stream-name,
+  .stream-item.active .status-badge {
+    color: white;
+  }
+  
+  .stream-item.active .play-icon {
+    color: white;
+  }
+  
+  /* Button animations */
+  .btn-control {
+    transition: all 0.15s ease;
+  }
+  .btn-control:hover {
+    transform: scale(1.1);
+  }
+  .btn-control:active {
+    transform: scale(0.95);
+  }
+  
+  /* Video player styling */
+  .video-container {
+    position: relative;
+    background: #000;
+    border-radius: 1rem;
+    overflow: hidden;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+  }
+  
+  video {
+    width: 100%;
+    height: auto;
+    display: block;
+  }
+  
+  /* Loading spinner */
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+  .fa-spin {
+    animation: spin 1s linear infinite;
+  }
+  
+  /* Pulse animation for playing indicator */
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: .5; }
+  }
+  .playing-indicator {
+    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+  
+  /* Volume slider styling */
+  input[type="range"] {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 6px;
+    border-radius: 3px;
+    background: #e2e8f0;
+    outline: none;
+  }
+  
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #667eea;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  
+  input[type="range"]::-webkit-slider-thumb:hover {
+    background: #5568d3;
+    transform: scale(1.2);
+  }
+  
+  input[type="range"]::-moz-range-thumb {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #667eea;
+    cursor: pointer;
+    border: none;
+    transition: all 0.2s;
+  }
+  
+  input[type="range"]::-moz-range-thumb:hover {
+    background: #5568d3;
+    transform: scale(1.2);
+  }
+  
+  /* Responsive adjustments */
+  @media (max-width: 768px) {
+    .video-container {
+      border-radius: 0.5rem;
+    }
+  }
+</style>
+</head>
+<body class="bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 min-h-screen">
+
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+  <!-- Header -->
+  <div class="text-center mb-8">
+    <h1 class="text-4xl md:text-5xl font-bold bg-gradient-to-r from-blue-600 to-indigo-700 bg-clip-text text-transparent mb-3">
+      <i class="fas fa-quran"></i> Quran Audio Player
+    </h1>
+    <p class="text-gray-600 text-lg">Listen to your favorite Quran recitations</p>
+  </div>
+
+  <!-- Error/Info Container -->
+  <div id="messageContainer" class="hidden fixed top-4 right-4 z-50 max-w-md animate-fade-in-down">
+    <div id="messageContent" class="border-l-4 px-4 py-3 rounded shadow-lg"></div>
+  </div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+    <!-- Left Column: Video Player & Controls -->
+    <div class="lg:col-span-2">
+      <div class="video-container">
+        <video id="videoPlayer" class="w-full" poster="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 675'%3E%3Crect fill='%231a1a1a' width='1200' height='675'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-family='Arial' font-size='48' fill='%23667eea'%3EQuran Audio Player%3C/text%3E%3C/svg%3E"></video>
+        
+        <!-- Loading Overlay -->
+        <div id="loadingOverlay" class="hidden absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+          <div class="text-center">
+            <i class="fas fa-circle-notch fa-spin text-5xl text-white mb-4"></i>
+            <p class="text-white text-lg">Loading stream...</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Playback Controls -->
+      <div class="bg-white shadow-xl rounded-2xl p-6 mt-6 border border-gray-100">
+        <div class="flex flex-col md:flex-row items-center justify-between gap-4">
+          <!-- Play/Pause & Volume -->
+          <div class="flex items-center gap-4 w-full md:w-auto">
+            <button id="playPauseBtn" onclick="togglePlayPause()" class="btn-control bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white w-14 h-14 rounded-full flex items-center justify-center shadow-lg" title="Play/Pause">
+              <i class="fas fa-play text-2xl"></i>
+            </button>
+            
+            <div class="flex items-center gap-2 flex-1 md:flex-none">
+              <button onclick="adjustVolume(-0.1)" class="btn-control text-gray-600 hover:text-blue-600 p-2" title="Decrease Volume">
+                <i class="fas fa-volume-down"></i>
+              </button>
+              <input type="range" id="volumeSlider" min="0" max="1" step="0.01" value="1" class="w-24 md:w-32" onchange="setVolume(this.value)">
+              <button onclick="adjustVolume(0.1)" class="btn-control text-gray-600 hover:text-blue-600 p-2" title="Increase Volume">
+                <i class="fas fa-volume-up"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- Current Stream Info -->
+          <div class="flex-1 text-center md:text-left">
+            <div id="currentStreamInfo" class="hidden">
+              <p class="text-sm text-gray-500 mb-1">Now Playing</p>
+              <h3 id="currentStreamName" class="text-xl font-bold text-gray-900 flex items-center justify-center md:justify-start gap-2">
+                <i class="fas fa-music text-blue-600 playing-indicator"></i>
+                <span id="playingStreamName">--</span>
+              </h3>
+            </div>
+            <div id="noStreamInfo" class="text-gray-400">
+              <p><i class="fas fa-info-circle mr-2"></i>Select a stream to start playback</p>
+            </div>
+          </div>
+
+          <!-- Additional Controls -->
+          <div class="flex items-center gap-2">
+            <button onclick="stopPlayback()" class="btn-control bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white px-6 py-3 rounded-lg shadow-md transition-all font-medium" title="Stop Playback">
+              <i class="fas fa-stop mr-2"></i>Stop
+            </button>
+          </div>
+        </div>
+
+        <!-- Progress Bar (if supported) -->
+        <div class="mt-4 hidden" id="progressContainer">
+          <div class="flex items-center gap-3">
+            <span id="currentTime" class="text-xs text-gray-500 font-mono">0:00</span>
+            <div class="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
+              <div id="progressBar" class="h-full bg-gradient-to-r from-blue-500 to-indigo-600 rounded-full transition-all" style="width: 0%"></div>
+            </div>
+            <span id="duration" class="text-xs text-gray-500 font-mono">0:00</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Column: Stream List -->
+    <div class="lg:col-span-1">
+      <div class="bg-white shadow-xl rounded-2xl p-6 border border-gray-100 sticky top-8">
+        <div class="flex items-center justify-between mb-6">
+          <h2 class="text-2xl font-bold text-gray-800 flex items-center gap-2">
+            <i class="fas fa-list-ul text-blue-600"></i>
+            Available Streams
+          </h2>
+          <button onclick="refreshStreams()" class="text-blue-600 hover:text-blue-800 transition-all" title="Refresh List">
+            <i class="fas fa-sync-alt"></i>
+          </button>
+        </div>
+
+        <!-- Loading State -->
+        <div id="streamsLoading" class="text-center py-8">
+          <i class="fas fa-circle-notch fa-spin text-3xl text-blue-600 mb-3"></i>
+          <p class="text-gray-500">Loading streams...</p>
+        </div>
+
+        <!-- Empty State -->
+        <div id="streamsEmpty" class="hidden text-center py-8">
+          <i class="fas fa-broadcast-tower text-5xl text-gray-300 mb-4"></i>
+          <p class="text-gray-500 text-lg">No streams available</p>
+          <p class="text-gray-400 text-sm mt-2">Create a stream from the dashboard</p>
+        </div>
+
+        <!-- Stream List -->
+        <div id="streamsList" class="space-y-3 max-h-[600px] overflow-y-auto pr-2">
+          <!-- Streams will be populated here -->
+        </div>
+
+        <!-- Stats -->
+        <div class="mt-6 pt-6 border-t border-gray-200">
+          <div class="flex items-center justify-between text-sm text-gray-500">
+            <span><i class="fas fa-signal mr-2"></i>Total Streams:</span>
+            <span id="totalStreams" class="font-semibold text-gray-700">0</span>
+          </div>
+          <div class="flex items-center justify-between text-sm text-gray-500 mt-2">
+            <span><i class="fas fa-play-circle mr-2"></i>Playing:</span>
+            <span id="playingStatus" class="font-semibold text-gray-700">None</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// Global variables
+let hls = null;
+let currentStreamUrl = null;
+let isPlaying = false;
+let availableStreams = [];
+
+// Initialize on load
+document.addEventListener('DOMContentLoaded', function() {
+  refreshStreams();
+  setupVideoListeners();
+});
+
+// Fetch available streams
+async function refreshStreams() {
+  const loadingEl = document.getElementById('streamsLoading');
+  const emptyEl = document.getElementById('streamsEmpty');
+  const listEl = document.getElementById('streamsList');
+  
+  loadingEl.classList.remove('hidden');
+  emptyEl.classList.add('hidden');
+  listEl.innerHTML = '';
+  
+  try {
+    const response = await fetch('/api/streams');
+    if (!response.ok) throw new Error('Failed to fetch streams');
+    
+    const streams = await response.json();
+    availableStreams = streams;
+    
+    loadingEl.classList.add('hidden');
+    
+    if (streams.length === 0) {
+      emptyEl.classList.remove('hidden');
+      document.getElementById('totalStreams').textContent = '0';
+      return;
+    }
+    
+    // Populate stream list
+    streams.forEach((stream, index) => {
+      const streamEl = createStreamElement(stream, index);
+      listEl.appendChild(streamEl);
+    });
+    
+    document.getElementById('totalStreams').textContent = streams.length;
+    
+  } catch (error) {
+    console.error('Error fetching streams:', error);
+    showMessage('Failed to load streams: ' + error.message, 'error');
+    loadingEl.classList.add('hidden');
+    emptyEl.classList.remove('hidden');
+  }
+}
+
+// Create stream list item
+function createStreamElement(stream, index) {
+  const div = document.createElement('div');
+  div.className = 'stream-item bg-gray-50 hover:bg-gray-100 rounded-lg p-4 cursor-pointer border border-gray-200';
+  div.dataset.streamName = stream.name;
+  div.dataset.streamUrl = `/streams/${stream.name}/stream.m3u8`;
+  
+  const isRunning = stream.status === 'running';
+  
+  div.innerHTML = `
+    <div class="flex items-center gap-3">
+      <div class="flex-shrink-0">
+        <i class="fas fa-${isRunning ? 'play-circle text-green-600' : 'pause-circle text-gray-400'} play-icon text-2xl transition-all"></i>
+      </div>
+      <div class="flex-1 min-w-0">
+        <h3 class="stream-name font-semibold text-gray-900 truncate">${stream.name}</h3>
+        <div class="flex items-center gap-2 mt-1">
+          <span class="status-badge inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
+            isRunning ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'
+          }">
+            <i class="fas fa-${isRunning ? 'circle status-running' : 'stop-circle'} mr-1"></i>
+            ${stream.status.toUpperCase()}
+          </span>
+          <span class="text-xs text-gray-500">
+            <i class="fas fa-clock mr-1"></i>${stream.createdAt ? new Date(stream.createdAt).toLocaleDateString() : 'N/A'}
+          </span>
+        </div>
+      </div>
+      <div class="flex-shrink-0">
+        <i class="fas fa-chevron-right text-gray-400"></i>
+      </div>
+    </div>
+  `;
+  
+  div.onclick = () => playStream(stream.name, `/streams/${stream.name}/stream.m3u8`, div);
+  
+  return div;
+}
+
+// Play a stream
+function playStream(streamName, streamUrl, element) {
+  // Update active state in list
+  document.querySelectorAll('.stream-item').forEach(el => el.classList.remove('active'));
+  if (element) element.classList.add('active');
+  
+  // Show loading
+  document.getElementById('loadingOverlay').classList.remove('hidden');
+  
+  // Stop current playback
+  stopPlayback();
+  
+  const video = document.getElementById('videoPlayer');
+  currentStreamUrl = streamUrl;
+  
+  // Update UI
+  document.getElementById('playingStreamName').textContent = streamName;
+  document.getElementById('currentStreamInfo').classList.remove('hidden');
+  document.getElementById('noStreamInfo').classList.add('hidden');
+  document.getElementById('playingStatus').textContent = streamName;
+  
+  // Initialize HLS
+  if (Hls.isSupported()) {
+    if (!hls) {
+      hls = new Hls({
+        debug: false,
+        enableWorker: true,
+        lowLatencyMode: false,
+        backBufferLength: 90
+      });
+      
+      hls.loadSource(streamUrl);
+      hls.attachMedia(video);
+      
+      hls.on(Hls.Events.MANIFEST_PARSED, () => {
+        document.getElementById('loadingOverlay').classList.add('hidden');
+        video.play().catch(err => {
+          console.error('Auto-play failed:', err);
+          showMessage('Click play button to start', 'info');
+        });
+        isPlaying = true;
+        updatePlayPauseButton();
+      });
+      
+      hls.on(Hls.Events.ERROR, (event, data) => {
+        console.error('HLS error:', data);
+        document.getElementById('loadingOverlay').classList.add('hidden');
+        
+        if (data.fatal) {
+          showMessage('Failed to load stream: ' + data.type, 'error');
+          switch (data.type) {
+            case Hls.ErrorTypes.NETWORK_ERROR:
+              hls.startLoad();
+              break;
+            case Hls.ErrorTypes.MEDIA_ERROR:
+              hls.recoverMediaError();
+              break;
+            default:
+              stopPlayback();
+              break;
+          }
+        }
+      });
+      
+    } else {
+      hls.loadSource(streamUrl);
+      video.play();
+      isPlaying = true;
+      updatePlayPauseButton();
+    }
+    
+  } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+    // Native HLS support (Safari)
+    video.src = streamUrl;
+    video.addEventListener('loadedmetadata', () => {
+      document.getElementById('loadingOverlay').classList.add('hidden');
+      video.play();
+      isPlaying = true;
+      updatePlayPauseButton();
+    });
+    
+    video.addEventListener('error', () => {
+      document.getElementById('loadingOverlay').classList.add('hidden');
+      showMessage('Failed to load stream', 'error');
+    });
+  } else {
+    document.getElementById('loadingOverlay').classList.add('hidden');
+    showMessage('HLS playback not supported in this browser', 'error');
+  }
+}
+
+// Toggle play/pause
+function togglePlayPause() {
+  const video = document.getElementById('videoPlayer');
+  
+  if (!currentStreamUrl) {
+    showMessage('Select a stream first', 'info');
+    return;
+  }
+  
+  if (isPlaying) {
+    video.pause();
+    isPlaying = false;
+  } else {
+    video.play();
+    isPlaying = true;
+  }
+  
+  updatePlayPauseButton();
+}
+
+// Update play/pause button icon
+function updatePlayPauseButton() {
+  const btn = document.getElementById('playPauseBtn');
+  const icon = btn.querySelector('i');
+  
+  if (isPlaying) {
+    icon.className = 'fas fa-pause text-2xl';
+    btn.title = 'Pause';
+  } else {
+    icon.className = 'fas fa-play text-2xl';
+    btn.title = 'Play';
+  }
+}
+
+// Stop playback
+function stopPlayback() {
+  const video = document.getElementById('videoPlayer');
+  
+  if (video) {
+    video.pause();
+    video.currentTime = 0;
+  }
+  
+  if (hls) {
+    hls.destroy();
+    hls = null;
+  }
+  
+  isPlaying = false;
+  currentStreamUrl = null;
+  updatePlayPauseButton();
+  
+  document.getElementById('currentStreamInfo').classList.add('hidden');
+  document.getElementById('noStreamInfo').classList.remove('hidden');
+  document.getElementById('playingStatus').textContent = 'None';
+  
+  // Remove active state from list
+  document.querySelectorAll('.stream-item').forEach(el => el.classList.remove('active'));
+}
+
+// Volume controls
+function setVolume(value) {
+  const video = document.getElementById('videoPlayer');
+  if (video) video.volume = parseFloat(value);
+}
+
+function adjustVolume(delta) {
+  const video = document.getElementById('videoPlayer');
+  if (!video) return;
+  
+  const newVolume = Math.max(0, Math.min(1, video.volume + delta));
+  video.volume = newVolume;
+  document.getElementById('volumeSlider').value = newVolume;
+}
+
+// Setup video event listeners
+function setupVideoListeners() {
+  const video = document.getElementById('videoPlayer');
+  
+  video.addEventListener('play', () => {
+    isPlaying = true;
+    updatePlayPauseButton();
+  });
+  
+  video.addEventListener('pause', () => {
+    isPlaying = false;
+    updatePlayPauseButton();
+  });
+  
+  video.addEventListener('ended', () => {
+    isPlaying = false;
+    updatePlayPauseButton();
+  });
+  
+  video.addEventListener('waiting', () => {
+    document.getElementById('loadingOverlay').classList.remove('hidden');
+  });
+  
+  video.addEventListener('playing', () => {
+    document.getElementById('loadingOverlay').classList.add('hidden');
+  });
+  
+  video.addEventListener('error', (e) => {
+    console.error('Video error:', e);
+    document.getElementById('loadingOverlay').classList.add('hidden');
+    showMessage('Playback error occurred', 'error');
+  });
+}
+
+// Show message to user
+function showMessage(message, type = 'info') {
+  const container = document.getElementById('messageContainer');
+  const content = document.getElementById('messageContent');
+  
+  const colors = {
+    info: 'bg-blue-100 text-blue-800 border-blue-500',
+    success: 'bg-green-100 text-green-800 border-green-500',
+    error: 'bg-red-100 text-red-800 border-red-500',
+    warning: 'bg-yellow-100 text-yellow-800 border-yellow-500'
+  };
+  
+  const icons = {
+    info: '<i class="fas fa-info-circle mr-2"></i>',
+    success: '<i class="fas fa-check-circle mr-2"></i>',
+    error: '<i class="fas fa-exclamation-triangle mr-2"></i>',
+    warning: '<i class="fas fa-exclamation-circle mr-2"></i>'
+  };
+  
+  content.className = `${colors[type] || colors.info} border-l-4 px-4 py-3 rounded shadow-lg`;
+  content.innerHTML = `${icons[type] || icons.info}<span>${message}</span>`;
+  
+  container.classList.remove('hidden');
+  
+  setTimeout(() => {
+    container.classList.add('hidden');
+  }, 5000);
+}
+</script>
+
+</body>
+</html>

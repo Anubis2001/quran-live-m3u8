@@ -569,35 +569,32 @@ function hideLoginModal() {
 // Handle login
 async function handleLogin(username, password) {
   try {
-    // Test credentials by making a POST request to the auth test endpoint
-    // This endpoint requires admin authentication, so it will fail with wrong credentials
+    // Test credentials by making a POST request to an admin-only endpoint
+    // POST requests require admin authentication, so this will fail with wrong credentials
     const credentials = btoa(`${username}:${password}`);
     
-    const response = await fetch('/api/streams/test-auth', {
+    // We use a POST request to /api/streams/test-auth which requires admin auth
+    // If the endpoint doesn't exist, we'll create a simple test by trying to access
+    // any protected write operation
+    const response = await fetch('/api/streams', {
       method: 'POST',
       headers: {
         'Authorization': `Basic ${credentials}`,
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({})
+      body: JSON.stringify({}) // Empty body, just testing auth
     });
     
-    // Check for authentication failure
-    if (response.status === 401) {
+    // Check response status
+    if (response.status === 401 || response.status === 403) {
+      // Authentication failed or insufficient permissions
       showError('Invalid username or password');
       return;
     }
     
-    if (response.status === 403) {
-      // User authenticated but doesn't have admin role
-      showError('Access denied. Admin credentials required.');
-      return;
-    }
-    
     if (response.ok) {
-      const data = await response.json();
-      
-      // Credentials are valid!
+      // This shouldn't happen for POST to /api/streams without proper handling
+      // but if it does, credentials are valid
       currentUser = username;
       userRole = username === 'admin' ? 'admin' : 'user';
       
@@ -613,7 +610,23 @@ async function handleLogin(username, password) {
       // Refresh to show updated UI
       refresh();
     } else {
-      showError('Invalid username or password');
+      // For non-OK responses that aren't 401/403, still check if it's auth failure
+      const data = await response.json().catch(() => ({}));
+      if (response.status === 404 || data.error?.includes('Not found')) {
+        // Endpoint exists and auth worked, but resource not found - this means credentials are valid!
+        currentUser = username;
+        userRole = username === 'admin' ? 'admin' : 'user';
+        
+        sessionStorage.setItem('user', username);
+        sessionStorage.setItem('role', userRole);
+        
+        hideLoginModal();
+        updateUIForRole();
+        showError(`Welcome back, ${username}!`, true);
+        refresh();
+      } else {
+        showError('Invalid username or password');
+      }
     }
   } catch (err) {
     console.error('Login failed:', err);
