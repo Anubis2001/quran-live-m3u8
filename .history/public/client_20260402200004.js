@@ -232,48 +232,47 @@ if (selectAllCheckbox) {
 const applyBulkButton = document.getElementById('applyBulkAction');
 if (applyBulkButton) {
   applyBulkButton.addEventListener('click', async () => {
-    const action = document.getElementById('bulkActionSelect').value;
+  const action = document.getElementById('bulkActionSelect').value;
+  
+  if (!action) {
+    showError('Please select an action from the dropdown');
+    return;
+  }
+  
+  if (selectedStreams.size === 0) {
+    showError('Please select at least one stream');
+    return;
+  }
+  
+  const actionNames = { start: 'Starting', stop: 'Stopping', delete: 'Deleting' };
+  const actionVerbs = { start: 'start', stop: 'stop', delete: 'delete' };
+  
+  // Show loading state
+  const applyButton = document.getElementById('applyBulkAction');
+  const originalText = applyButton.innerHTML;
+  applyButton.disabled = true;
+  applyButton.innerHTML = `<i class="fas fa-spinner fa-spin"></i> ${actionNames[action]} ${selectedStreams.size} stream(s)...`;
+  
+  try {
+    // Execute action on all selected streams
+    const promises = Array.from(selectedStreams).map(name => 
+      fetchWithError(`/api/streams/${name}${action === 'delete' ? '' : '/' + action}`, {
+        method: action === 'delete' ? 'DELETE' : 'POST'
+      }).catch(err => console.error(`Failed to ${actionVerbs[action]} ${name}:`, err))
+    );
     
-    if (!action) {
-      showError('Please select an action from the dropdown');
-      return;
-    }
+    await Promise.all(promises);
     
-    if (selectedStreams.size === 0) {
-      showError('Please select at least one stream');
-      return;
-    }
-    
-    const actionNames = { start: 'Starting', stop: 'Stopping', delete: 'Deleting' };
-    const actionVerbs = { start: 'start', stop: 'stop', delete: 'delete' };
-    
-    // Show loading state
-    const applyButton = document.getElementById('applyBulkAction');
-    const originalText = applyButton.innerHTML;
-    applyButton.disabled = true;
-    applyButton.innerHTML = `<i class="fas fa-spinner fa-spin"></i> ${actionNames[action]} ${selectedStreams.size} stream(s)...`;
-    
-    try {
-      // Execute action on all selected streams
-      const promises = Array.from(selectedStreams).map(name => 
-        fetchWithError(`/api/streams/${name}${action === 'delete' ? '' : '/' + action}`, {
-          method: action === 'delete' ? 'DELETE' : 'POST'
-        }).catch(err => console.error(`Failed to ${actionVerbs[action]} ${name}:`, err))
-      );
-      
-      await Promise.all(promises);
-      
-      showError(`${actionNames[action].replace('ing', 'ed')} ${selectedStreams.size} stream(s) successfully!`, true);
-      selectedStreams.clear();
-      await refresh();
-    } catch (err) {
-      console.error('Bulk action failed:', err);
-    } finally {
-      applyButton.disabled = false;
-      applyButton.innerHTML = originalText;
-    }
-  });
-}
+    showError(`${actionNames[action].replace('ing', 'ed')} ${selectedStreams.size} stream(s) successfully!`, true);
+    selectedStreams.clear();
+    await refresh();
+  } catch (err) {
+    console.error('Bulk action failed:', err);
+  } finally {
+    applyButton.disabled = false;
+    applyButton.innerHTML = originalText;
+  }
+});
 
 document.getElementById("uploadForm").addEventListener("submit", async e => {
   e.preventDefault();

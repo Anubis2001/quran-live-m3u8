@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HLS Streams Dashboard</title>
+
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet"
+ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
+</head>
+<body class="bg-gray-100 text-gray-800">
+
+<div id="errorContainer" class="hidden bg-red-200 text-red-800 border border-red-400 px-4 py-3 rounded mb-4">
+  <strong>Error:</strong> <span id="errorText"></span>
+</div>
+
+<div class="container mx-auto p-6">
+  <h1 class="text-3xl font-bold text-center mb-6 text-blue-700">
+    HLS Streams Dashboard
+  </h1>
+
+  <div class="bg-white shadow rounded-lg p-6 mb-6">
+    <h2 class="text-xl mb-4 font-semibold">Upload New Stream</h2>
+    <form id="uploadForm" class="flex flex-col md:flex-row gap-4">
+      <input type="text" name="name" placeholder="Stream Name"
+        class="border p-2 rounded flex-1" required>
+      <input type="file" name="audio" accept=".mp3"
+        class="border p-2 rounded flex-1" required>
+      <button class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+        <i class="fas fa-upload"></i> Upload
+      </button>
+    </form>
+  </div>
+
+  <div id="bulkActions" class="bg-white shadow rounded-lg p-4 mb-4 hidden">
+    <div class="flex items-center gap-4 flex-wrap">
+      <div class="flex items-center gap-2">
+        <input type="checkbox" id="selectAll" class="w-5 h-5 text-blue-600 rounded focus:ring-blue-500">
+        <label for="selectAll" class="font-semibold text-gray-700">Select All</label>
+      </div>
+      <div class="flex items-center gap-2">
+        <span class="font-semibold text-gray-700">Bulk Action:</span>
+        <select id="bulkActionSelect" class="border p-2 rounded">
+          <option value="">Choose...</option>
+          <option value="start">Start</option>
+          <option value="stop">Stop</option>
+          <option value="delete">Delete</option>
+        </select>
+        <button id="applyBulkAction" class="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700 transition-colors">
+          <i class="fas fa-cog"></i> Apply
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="bg-white shadow rounded-lg p-6">
+    <h2 class="text-xl mb-4">Streams</h2>
+    <ul id="list" class="space-y-4"></ul>
+  </div>
+</div>
+
+<script src="client.js"></script>
+</body>
+</html>

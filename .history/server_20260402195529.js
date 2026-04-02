@@ -108,8 +108,7 @@ app.get("/api/streams", (req, res) => {
     return { 
       name: streamData.name, 
       status: alive ? "running" : streamData.failed ? "failed" : "stopped",
-      url: `${req.protocol}://${req.get("host")}/streams/${streamData.name}/stream.m3u8`,
-      createdAt: streamData.createdAt
+      url: `${req.protocol}://${req.get("host")}/streams/${streamData.name}/stream.m3u8`
     };
   });
   res.json(list);
