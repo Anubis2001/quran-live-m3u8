@@ -110,31 +110,14 @@ app.get("/__debug/ffmpeg", (req, res) => {
   // Add running streams info
   Object.keys(runningStreams).forEach(name => {
     const stream = runningStreams[name];
-    
-    // Check if process is still alive
-    let isAlive = false;
-    try {
-      if (stream.isNative) {
-        process.kill(stream.pid, 0);
-        isAlive = true;
-      } else if (stream.process && !stream.process.killed) {
-        isAlive = true;
-      }
-    } catch (e) {
-      isAlive = false;
-    }
-    
     debugInfo.runningStreams[name] = {
       pid: stream.pid,
-      isNative: stream.isNative || false,
-      alive: isAlive,
+      alive: stream.process && !stream.process.killed,
       playlistExists: stream.outputPlaylist && fs.existsSync(stream.outputPlaylist),
-      segmentPatternExists: stream.outputSegment ? fs.existsSync(path.dirname(stream.outputSegment)) : false,
+      segmentExists: stream.outputSegment && fs.existsSync(path.dirname(stream.outputSegment)),
       outputDir: stream.workingDir || (stream.outputPlaylist ? path.dirname(stream.outputPlaylist) : 'unknown'),
       workingDirectory: stream.workingDir,
-      cwd: process.cwd(),
-      logFile: stream.logFile || 'N/A',
-      logFileExists: stream.logFile && fs.existsSync(stream.logFile)
+      cwd: process.cwd()
     };
   });
   

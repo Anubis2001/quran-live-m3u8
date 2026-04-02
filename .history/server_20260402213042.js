@@ -110,31 +110,14 @@ app.get("/__debug/ffmpeg", (req, res) => {
   // Add running streams info
   Object.keys(runningStreams).forEach(name => {
     const stream = runningStreams[name];
-    
-    // Check if process is still alive
-    let isAlive = false;
-    try {
-      if (stream.isNative) {
-        process.kill(stream.pid, 0);
-        isAlive = true;
-      } else if (stream.process && !stream.process.killed) {
-        isAlive = true;
-      }
-    } catch (e) {
-      isAlive = false;
-    }
-    
     debugInfo.runningStreams[name] = {
       pid: stream.pid,
-      isNative: stream.isNative || false,
-      alive: isAlive,
+      alive: stream.process && !stream.process.killed,
       playlistExists: stream.outputPlaylist && fs.existsSync(stream.outputPlaylist),
-      segmentPatternExists: stream.outputSegment ? fs.existsSync(path.dirname(stream.outputSegment)) : false,
+      segmentExists: stream.outputSegment && fs.existsSync(path.dirname(stream.outputSegment)),
       outputDir: stream.workingDir || (stream.outputPlaylist ? path.dirname(stream.outputPlaylist) : 'unknown'),
       workingDirectory: stream.workingDir,
-      cwd: process.cwd(),
-      logFile: stream.logFile || 'N/A',
-      logFileExists: stream.logFile && fs.existsSync(stream.logFile)
+      cwd: process.cwd()
     };
   });
   
@@ -752,36 +735,6 @@ function stopStream(name) {
   }
   
   try {
-    // Handle native FFmpeg processes differently
-    if (ent.isNative) {
-      console.log(`Stopping native FFmpeg process ${name} (PID: ${ent.pid})`);
-      
-      // Kill the process using system command
-      try {
-        execSync(`kill -TERM ${ent.pid}`, { stdio: 'ignore' });
-        console.log(`Sent SIGTERM to native process ${ent.pid}`);
-        
-        // Wait briefly and check if process died
-        setTimeout(() => {
-          try {
-            process.kill(ent.pid, 0);
-            // Still running, force kill
-            console.log(`Process ${ent.pid} still running, sending SIGKILL`);
-            execSync(`kill -KILL ${ent.pid}`, { stdio: 'ignore' });
-          } catch (e) {
-            console.log(`Native process ${ent.pid} terminated successfully`);
-          }
-        }, 1000);
-      } catch (killErr) {
-        console.error(`Error killing native process:`, killErr.message);
-      }
-      
-      delete runningStreams[name];
-      console.log(`Stream ${name} stopped successfully`);
-      return true;
-    }
-    
-    // Handle Node.js spawned processes (legacy code)
     const proc = ent.process;
     
     if (!proc || proc.killed) {
@@ -978,76 +931,6 @@ function stopStream(name) {
   } catch (err) {
     console.error(`Error stopping stream ${name}:`, err);
     // Still remove from tracking even if there's an error
-    delete runningStreams[name];
-    return false;
-  }
-}
-
-// Synchronous version for stopping streams before starting new ones
-function stopStreamSync(name) {
-  console.log(`Stopping stream synchronously: ${name}`);
-  const ent = runningStreams[name];
-  
-  if (!ent) {
-    console.log(`Stream ${name} not found in running processes`);
-    return false;
-  }
-  
-  try {
-    // Handle native FFmpeg processes
-    if (ent.isNative) {
-      console.log(`Stopping native FFmpeg process ${name} (PID: ${ent.pid})`);
-      
-      try {
-        execSync(`kill -TERM ${ent.pid}`, { stdio: 'ignore', timeout: 2000 });
-        console.log(`Sent SIGTERM to native process ${ent.pid}`);
-        
-        // Wait up to 2 seconds for graceful shutdown
-        let waited = 0;
-        while (waited < 2000) {
-          try {
-            process.kill(ent.pid, 0);
-            // Still running
-            require('deasync').sleep(100);
-            waited += 100;
-          } catch (e) {
-            // Process dead
-            console.log(`Native process ${ent.pid} terminated after ${waited}ms`);
-            break;
-          }
-        }
-        
-        // Force kill if still alive
-        try {
-          process.kill(ent.pid, 0);
-          console.log(`Process still alive, sending SIGKILL`);
-          execSync(`kill -KILL ${ent.pid}`, { stdio: 'ignore' });
-        } catch (e) {
-          console.log(`Process terminated successfully`);
-        }
-      } catch (killErr) {
-        console.error(`Error killing native process:`, killErr.message);
-      }
-      
-      delete runningStreams[name];
-      return true;
-    }
-    
-    // Handle Node.js spawned processes
-    const proc = ent.process;
-    if (proc && !proc.killed) {
-      try {
-        proc.kill('SIGTERM');
-        console.log(`Sent SIGTERM to spawned process ${proc.pid}`);
-      } catch (e) {
-        console.error(`Error sending SIGTERM:`, e.message);
-      }
-    }
-    
-    delete runningStreams[name];
-    return true;
-  } catch (err) {
-    console.error(`Error stopping stream ${name}:`, err);
     delete runningStreams[name];
     return false;
   }
