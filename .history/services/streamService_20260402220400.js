@@ -1,5 +1,4 @@
 const { exec, execSync } = require("child_process");
-const { exec, execSync, spawn } = require("child_process");
 const fs = require("fs");
 const path = require("path");
 
@@ -85,8 +84,7 @@ function saveStreamsMetadata(streamsArray) {
 }
 
 /**
- * Start FFmpeg HLS stream using spawn() with detached mode (PRIMARY METHOD)
- * Falls back to native nohup command if spawn fails
+ * Start FFmpeg HLS stream using native nohup command (MOST RELIABLE for Linux)
  */
 function startStream(name, filePath) {
   console.log(`\n========== STARTING STREAM: ${name} ==========`);
@@ -165,288 +163,142 @@ function startStream(name, filePath) {
     console.error(`Cannot list directory:`, listErr.message);
   }
   
-  // ALTERNATIVE APPROACH: Use spawn() with detached mode for better control
-  // This method provides more reliable process management on Linux
-  console.log(`\n🚀 STARTING FFMPEG WITH SPAWN (DETACHED MODE):`);
-  console.log(`This approach provides better process control and error handling\n`);
-  
-  // Build FFmpeg arguments array
-  const ffmpegArgs = [
+  // Build COMPLETE FFmpeg command with ALL arguments
+  // This is the EXACT command that should work
+  const ffmpegCommand = [
+    'cd', `"${dir}"`, '&&',
+    'nohup', 'ffmpeg',
     '-re',                                    // Read input at native frame rate
     '-stream_loop', '-1',                     // Infinite loop
-    '-i', filePath,                           // Input file (absolute path)
-    '-vn',                                    // Disable video (skip album art/embedded images)
+    '-i', `"${filePath}"`,                    // Input file
+    '-vn',                                    // CRITICAL: Disable video (skip album art/embedded images)
     '-c:a', 'copy',                           // Copy audio (low CPU)
     '-hls_time', '3',                         // 3-second segments
     '-hls_list_size', '6',                    // Keep 6 segments (~18s buffer)
     '-hls_flags', 'delete_segments+round_durations',
-    '-hls_segment_filename', outputSegment,
+    '-hls_segment_filename', `"${outputSegment}"`,
     '-hls_segment_type', 'mpegts',
-    outputPlaylist                            // Output playlist
-  ];
+    `"${outputPlaylist}"`,                    // Output playlist
+    '> "${dir}/ffmpeg.log"', '2>&1', '&', 'echo', '$!'
+  ].join(' ');
   
-  console.log(`FFmpeg command: ffmpeg ${ffmpegArgs.join(' ')}`);
-  console.log(`Working directory: ${dir}\n`);
+  console.log(`\n🚀 EXECUTING NATIVE FFMPEG COMMAND:`);
+  console.log(`Command: ${ffmpegCommand}\n`);
   
-  // Create log file stream for capturing FFmpeg output
-  const logPath = path.join(dir, 'ffmpeg.log');
-  let logStream;
-  try {
-    logStream = fs.createWriteStream(logPath, { flags: 'w' });
-    console.log(`✓ Log file created: ${logPath}`);
-  } catch (logErr) {
-    console.error(`⚠ Could not create log file:`, logErr.message);
-    logStream = null;
-  }
-  
-  // Spawn FFmpeg as a detached process
-  const ffmpegProcess = spawn('ffmpeg', ffmpegArgs, {
-    detached: true,              // Run in background (survives parent exit)
-    stdio: ['ignore', 'pipe', 'pipe'],  // stdin, stdout, stderr
-    cwd: dir                     // Set working directory to output folder
-  });
-  
-  console.log(`✅ FFmpeg spawned with PID: ${ffmpegProcess.pid}`);
-  
-  // Capture and log FFmpeg stdout
-  if (ffmpegProcess.stdout) {
-    ffmpegProcess.stdout.on('data', (data) => {
-      const output = data.toString();
-      console.log(`FFmpeg STDOUT: ${output.trim()}`);
-      if (logStream) logStream.write(output);
-    });
-  }
-  
-  // Capture and log FFmpeg stderr (most important - contains progress and errors)
-  if (ffmpegProcess.stderr) {
-    let stderrBuffer = '';
-    ffmpegProcess.stderr.on('data', (data) => {
-      const output = data.toString();
-      stderrBuffer += output;
-      
-      // Log stderr lines as they arrive
-      const lines = output.split('\n');
-      lines.forEach(line => {
-        if (line.trim()) {
-          console.log(`FFmpeg STDERR: ${line}`);
-          if (logStream) logStream.write(`STDERR: ${line}\n`);
-        }
-      });
-      
-      // Check for critical errors in real-time
-      if (output.toLowerCase().includes('error') || output.toLowerCase().includes('invalid')) {
-        console.error(`⚠️ Potential FFmpeg error detected!`);
-        if (logStream) logStream.write(`\n⚠️ ERROR DETECTED AT: ${new Date().toISOString()}\n`);
-      }
-      
-      // Detect successful HLS initialization
-      if (output.includes('Opening') && output.includes('.m3u8')) {
-        console.log(`✓ HLS playlist initialization detected!`);
-      }
-      
-      // Detect segment creation
-      if (output.includes('Opening') && output.includes('.ts')) {
-        const match = output.match(/Opening '(.*?\.ts)'/);
-        if (match) {
-          console.log(`✓ Segment creation detected: ${match[1]}`);
-        }
-      }
-    });
-  }
-  
-  // Handle process exit
-  ffmpegProcess.on('exit', (code, signal) => {
-    console.log(`\n🛑 FFmpeg process exited with code: ${code}, signal: ${signal}`);
-    if (logStream) {
-      logStream.write(`\n=== PROCESS EXITED: code=${code}, signal=${signal} at ${new Date().toISOString()} ===\n`);
-      logStream.end();
+  // Execute the command
+  exec(ffmpegCommand, (error, stdout, stderr) => {
+    if (error) {
+      console.error(`❌ Error executing command:`, error.message);
+      console.error(`stderr:`, stderr);
+      return;
     }
     
-    if (code !== 0 && signal !== 'SIGTERM') {
-      console.error(`❌ FFmpeg exited abnormally! Check logs for details.`);
-      runningStreams[name].status = 'failed';
-    }
-  });
-  
-  // Handle process errors
-  ffmpegProcess.on('error', (err) => {
-    console.error(`\n❌ FFmpeg process ERROR:`, err.message);
-    console.error(`Error code:`, err.code);
-    if (logStream) {
-      logStream.write(`\n=== PROCESS ERROR: ${err.message} at ${new Date().toISOString()} ===\n`);
-      logStream.end();
-    }
+    const pid = parseInt(stdout.trim());
+    console.log(`✅ FFmpeg started as background process with PID: ${pid}`);
     
-    runningStreams[name].status = 'failed';
-  });
-  
-  // Store process info
-  runningStreams[name] = { 
-    pid: ffmpegProcess.pid,
-    process: ffmpegProcess,
-    isNative: false,
-    startTime: new Date(),
-    outputPlaylist: outputPlaylist,
-    outputSegment: outputSegment,
-    workingDir: dir,
-    logFile: logPath,
-    status: 'running'
-  };
-  
-  console.log(`\n📊 Stream tracking info:`);
-  console.log(`  Stream name: ${name}`);
-  console.log(`  PID: ${ffmpegProcess.pid}`);
-  console.log(`  Working directory: ${dir}`);
-  console.log(`  Log file: ${logPath}`);
-  console.log(`  Expected playlist: ${outputPlaylist}`);
-  console.log(`  Process type: spawned (detached)\n`);
-  
-  // Monitor file creation with aggressive checks
-  console.log(`⏱️ Monitoring file creation...`);
-  
-  const checkFileExists = (filePath, description, delayMs) => {
-    setTimeout(() => {
-      const exists = fs.existsSync(filePath);
-      console.log(`${description} ${exists ? '✓ CREATED' : '❌ NOT CREATED'}: ${filePath}`);
-      
-      if (exists) {
-        const stats = fs.statSync(filePath);
-        console.log(`  Size: ${stats.size} bytes | Modified: ${stats.mtime}`);
-        
-        if (description.includes('Playlist')) {
-          try {
-            const content = fs.readFileSync(filePath, 'utf8');
-            console.log(`  ✓ Valid M3U8 content (${content.length} chars)`);
-            console.log(`  Preview: ${content.substring(0, 200).replace(/\n/g, '\n    ')}`);
-          } catch (readErr) {
-            console.error(`  Could not read:`, readErr.message);
-          }
-        }
-      } else {
-        // File doesn't exist - show what DOES exist
-        console.log(`  ℹ️ Files in directory:`);
-        try {
-          const files = fs.readdirSync(dir);
-          files.forEach(f => {
-            const fp = path.join(dir, f);
-            const stats = fs.statSync(fp);
-            console.log(`    ${f} (${stats.size} bytes, ${stats.isDirectory() ? 'DIR' : 'FILE'})`);
-          });
-        } catch (e) {}
-      }
-    }, delayMs);
-  };
-  
-  checkFileExists(outputPlaylist, 'Playlist (2s)', 2000);
-  checkFileExists(outputPlaylist, 'Playlist (5s)', 5000);
-  checkFileExists(outputPlaylist, 'Playlist (10s)', 10000);
-  checkFileExists(path.join(dir, 'seg_000.ts'), 'First segment (3s)', 3000);
-  checkFileExists(path.join(dir, 'seg_000.ts'), 'First segment (6s)', 6000);
-  
-  // Show log file contents after 8 seconds
-  setTimeout(() => {
-    console.log(`\n📋 Reading FFmpeg log file...`);
-    try {
-      if (fs.existsSync(logPath)) {
-        const logContent = fs.readFileSync(logPath, 'utf8');
-        console.log(`Log file exists (${logContent.length} chars):`);
-        console.log(logContent.split('\n').map(l => `  ${l}`).join('\n'));
-        
-        // Check for errors in log
-        if (logContent.toLowerCase().includes('error') || logContent.toLowerCase().includes('invalid')) {
-          console.error(`\n⚠️ ERRORS FOUND IN LOG!`);
-        } else {
-          console.log(`\n✓ No obvious errors in log`);
-        }
-      } else {
-        console.error(`❌ Log file not created: ${logPath}`);
-      }
-    } catch (logErr) {
-      console.error(`Error reading log:`, logErr.message);
-    }
+    // Store process info
+    runningStreams[name] = { 
+      pid: pid,
+      isNative: true,
+      startTime: new Date(),
+      outputPlaylist: outputPlaylist,
+      outputSegment: outputSegment,
+      workingDir: dir,
+      logFile: path.join(dir, 'ffmpeg.log')
+    };
     
-    // Final directory listing
-    console.log(`\n📁 Final directory state:`);
-    try {
-      const finalFiles = fs.readdirSync(dir);
-      console.log(`Files in ${dir}:`, finalFiles.length);
-      finalFiles.forEach(f => {
-        const fp = path.join(dir, f);
-        const stats = fs.statSync(fp);
-        console.log(`  ${f}: ${stats.size} bytes`);
-      });
-      
-      // Success check
-      if (finalFiles.some(f => f.endsWith('.m3u8'))) {
-        console.log(`\n🎉 SUCCESS! HLS files created!`);
-      } else {
-        console.error(`\n❌ STILL NO M3U8 FILE! Check logs above.`);
-        console.log(`\n⚠️ FALLBACK: Switching to native nohup command as backup...\n`);
+    console.log(`\n📊 Stream tracking info:`);
+    console.log(`  Stream name: ${name}`);
+    console.log(`  PID: ${pid}`);
+    console.log(`  Working directory: ${dir}`);
+    console.log(`  Log file: ${runningStreams[name].logFile}`);
+    console.log(`  Expected playlist: ${outputPlaylist}`);
+    
+    // Monitor file creation with aggressive checks
+    console.log(`\n⏱️ Monitoring file creation...`);
+    
+    const checkFileExists = (filePath, description, delayMs) => {
+      setTimeout(() => {
+        const exists = fs.existsSync(filePath);
+        console.log(`${description} ${exists ? '✓ CREATED' : '❌ NOT CREATED'}: ${filePath}`);
         
-        // FALLBACK: Try the native nohup approach if spawn didn't work
-        const ffmpegNativeCommand = [
-          'cd', `"${dir}"`, '&&',
-          'nohup', 'ffmpeg',
-          '-re',
-          '-stream_loop', '-1',
-          '-i', `"${filePath}"`,
-          '-vn',
-          '-c:a', 'copy',
-          '-hls_time', '3',
-          '-hls_list_size', '6',
-          '-hls_flags', 'delete_segments+round_durations',
-          '-hls_segment_filename', `"${outputSegment}"`,
-          '-hls_segment_type', 'mpegts',
-          `"${outputPlaylist}"`,
-          '> "${dir}/ffmpeg_native_fallback.log"', '2>&1', '&', 'echo', '$!'
-        ].join(' ');
-        
-        console.log(`Executing fallback command: ${ffmpegNativeCommand}\n`);
-        
-        exec(ffmpegNativeCommand, (fallbackError, fallbackStdout, fallbackStderr) => {
-          if (fallbackError) {
-            console.error(`❌ Fallback command failed:`, fallbackError.message);
-            return;
-          }
+        if (exists) {
+          const stats = fs.statSync(filePath);
+          console.log(`  Size: ${stats.size} bytes | Modified: ${stats.mtime}`);
           
-          const fallbackPid = parseInt(fallbackStdout.trim());
-          console.log(`✅ Fallback FFmpeg started with PID: ${fallbackPid}`);
-          
-          // Update running streams with fallback process
-          runningStreams[name] = { 
-            pid: fallbackPid,
-            isNative: true,
-            startTime: new Date(),
-            outputPlaylist: outputPlaylist,
-            outputSegment: outputSegment,
-            workingDir: dir,
-            logFile: path.join(dir, 'ffmpeg_native_fallback.log'),
-            status: 'running_fallback'
-          };
-          
-          // Monitor fallback file creation
-          setTimeout(() => {
-            console.log(`\n📋 Checking fallback results...`);
+          if (description.includes('Playlist')) {
             try {
-              const files = fs.readdirSync(dir);
-              console.log(`Files in ${dir}:`, files.length);
-              files.forEach(f => {
-                const fp = path.join(dir, f);
-                const stats = fs.statSync(fp);
-                console.log(`  ${f}: ${stats.size} bytes`);
-              });
-              
-              if (files.some(f => f.endsWith('.m3u8'))) {
-                console.log(`\n🎉 SUCCESS with fallback method!`);
-              } else {
-                console.error(`\n❌ FALLBACK ALSO FAILED! Manual intervention required.`);
-              }
-            } catch (e) {}
-          }, 5000);
-        });
+              const content = fs.readFileSync(filePath, 'utf8');
+              console.log(`  ✓ Valid M3U8 content (${content.length} chars)`);
+              console.log(`  Preview: ${content.substring(0, 200).replace(/\n/g, '\n    ')}`);
+            } catch (readErr) {
+              console.error(`  Could not read:`, readErr.message);
+            }
+          }
+        } else {
+          // File doesn't exist - show what DOES exist
+          console.log(`  ℹ️ Files in directory:`);
+          try {
+            const files = fs.readdirSync(dir);
+            files.forEach(f => {
+              const fp = path.join(dir, f);
+              const stats = fs.statSync(fp);
+              console.log(`    ${f} (${stats.size} bytes, ${stats.isDirectory() ? 'DIR' : 'FILE'})`);
+            });
+          } catch (e) {}
+        }
+      }, delayMs);
+    };
+    
+    checkFileExists(outputPlaylist, 'Playlist (2s)', 2000);
+    checkFileExists(outputPlaylist, 'Playlist (5s)', 5000);
+    checkFileExists(outputPlaylist, 'Playlist (10s)', 10000);
+    checkFileExists(path.join(dir, 'seg_000.ts'), 'First segment (3s)', 3000);
+    checkFileExists(path.join(dir, 'seg_000.ts'), 'First segment (6s)', 6000);
+    
+    // Show log file contents after 8 seconds
+    setTimeout(() => {
+      console.log(`\n📋 Reading FFmpeg log file...`);
+      try {
+        const logPath = path.join(dir, 'ffmpeg.log');
+        if (fs.existsSync(logPath)) {
+          const logContent = fs.readFileSync(logPath, 'utf8');
+          console.log(`Log file exists (${logContent.length} chars):`);
+          console.log(logContent.split('\n').map(l => `  ${l}`).join('\n'));
+          
+          // Check for errors in log
+          if (logContent.toLowerCase().includes('error') || logContent.toLowerCase().includes('invalid')) {
+            console.error(`\n⚠️ ERRORS FOUND IN LOG!`);
+          } else {
+            console.log(`\n✓ No obvious errors in log`);
+          }
+        } else {
+          console.error(`❌ Log file not created: ${logPath}`);
+        }
+      } catch (logErr) {
+        console.error(`Error reading log:`, logErr.message);
       }
-    } catch (e) {}
-  }, 8000);
+      
+      // Final directory listing
+      console.log(`\n📁 Final directory state:`);
+      try {
+        const finalFiles = fs.readdirSync(dir);
+        console.log(`Files in ${dir}:`, finalFiles.length);
+        finalFiles.forEach(f => {
+          const fp = path.join(dir, f);
+          const stats = fs.statSync(fp);
+          console.log(`  ${f}: ${stats.size} bytes`);
+        });
+        
+        // Success check
+        if (finalFiles.some(f => f.endsWith('.m3u8'))) {
+          console.log(`\n🎉 SUCCESS! HLS files created!`);
+        } else {
+          console.error(`\n❌ STILL NO M3U8 FILE! Check logs above.`);
+        }
+      } catch (e) {}
+    }, 8000);
+  });
 }
 
 /**

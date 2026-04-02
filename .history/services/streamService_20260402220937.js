@@ -1,5 +1,4 @@
 const { exec, execSync } = require("child_process");
-const { exec, execSync, spawn } = require("child_process");
 const fs = require("fs");
 const path = require("path");
 
@@ -85,8 +84,7 @@ function saveStreamsMetadata(streamsArray) {
 }
 
 /**
- * Start FFmpeg HLS stream using spawn() with detached mode (PRIMARY METHOD)
- * Falls back to native nohup command if spawn fails
+ * Start FFmpeg HLS stream using native nohup command (MOST RELIABLE for Linux)
  */
 function startStream(name, filePath) {
   console.log(`\n========== STARTING STREAM: ${name} ==========`);
@@ -381,69 +379,6 @@ function startStream(name, filePath) {
         console.log(`\n🎉 SUCCESS! HLS files created!`);
       } else {
         console.error(`\n❌ STILL NO M3U8 FILE! Check logs above.`);
-        console.log(`\n⚠️ FALLBACK: Switching to native nohup command as backup...\n`);
-        
-        // FALLBACK: Try the native nohup approach if spawn didn't work
-        const ffmpegNativeCommand = [
-          'cd', `"${dir}"`, '&&',
-          'nohup', 'ffmpeg',
-          '-re',
-          '-stream_loop', '-1',
-          '-i', `"${filePath}"`,
-          '-vn',
-          '-c:a', 'copy',
-          '-hls_time', '3',
-          '-hls_list_size', '6',
-          '-hls_flags', 'delete_segments+round_durations',
-          '-hls_segment_filename', `"${outputSegment}"`,
-          '-hls_segment_type', 'mpegts',
-          `"${outputPlaylist}"`,
-          '> "${dir}/ffmpeg_native_fallback.log"', '2>&1', '&', 'echo', '$!'
-        ].join(' ');
-        
-        console.log(`Executing fallback command: ${ffmpegNativeCommand}\n`);
-        
-        exec(ffmpegNativeCommand, (fallbackError, fallbackStdout, fallbackStderr) => {
-          if (fallbackError) {
-            console.error(`❌ Fallback command failed:`, fallbackError.message);
-            return;
-          }
-          
-          const fallbackPid = parseInt(fallbackStdout.trim());
-          console.log(`✅ Fallback FFmpeg started with PID: ${fallbackPid}`);
-          
-          // Update running streams with fallback process
-          runningStreams[name] = { 
-            pid: fallbackPid,
-            isNative: true,
-            startTime: new Date(),
-            outputPlaylist: outputPlaylist,
-            outputSegment: outputSegment,
-            workingDir: dir,
-            logFile: path.join(dir, 'ffmpeg_native_fallback.log'),
-            status: 'running_fallback'
-          };
-          
-          // Monitor fallback file creation
-          setTimeout(() => {
-            console.log(`\n📋 Checking fallback results...`);
-            try {
-              const files = fs.readdirSync(dir);
-              console.log(`Files in ${dir}:`, files.length);
-              files.forEach(f => {
-                const fp = path.join(dir, f);
-                const stats = fs.statSync(fp);
-                console.log(`  ${f}: ${stats.size} bytes`);
-              });
-              
-              if (files.some(f => f.endsWith('.m3u8'))) {
-                console.log(`\n🎉 SUCCESS with fallback method!`);
-              } else {
-                console.error(`\n❌ FALLBACK ALSO FAILED! Manual intervention required.`);
-              }
-            } catch (e) {}
-          }, 5000);
-        });
       }
     } catch (e) {}
   }, 8000);
