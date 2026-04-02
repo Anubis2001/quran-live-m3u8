@@ -30,10 +30,8 @@ function showError(message, isSuccess = false) {
 }
 
 async function fetchWithError(url, options) {
-  debug('Fetching:', url, options);
   try {
     const response = await fetch(url, options);
-    debug('Response status:', response.status, response.statusText);
     if (!response.ok) {
       let errorMsg = `Error ${response.status}`;
       try {
@@ -46,18 +44,15 @@ async function fetchWithError(url, options) {
     }
     return response;
   } catch (err) {
-    debug('Fetch error:', err.message);
     showError(err.message || "Unknown error happened");
     throw err;
   }
 }
 
 async function refresh() {
-  debug('Refreshing streams list...');
   try {
     const res = await fetchWithError("/api/streams");
     const streams = await res.json();
-    debug('Received streams:', streams.length);
 
     const list = document.getElementById("list");
     const streamCount = document.getElementById("streamCount");
@@ -70,7 +65,6 @@ async function refresh() {
     list.innerHTML = "";
 
     if (streams.length === 0) {
-      debug('No streams available');
       list.innerHTML = `
         <li class="text-center py-12">
           <i class="fas fa-broadcast-tower text-6xl text-gray-300 mb-4"></i>
@@ -187,10 +181,8 @@ async function refresh() {
     updateSelectedCount();
     updateSelectAllCheckbox();
 
-    debug('Streams list rendered successfully');
   } catch (err) {
     console.error("Refresh failed:", err);
-    debug('Refresh error details:', err.stack);
   }
 }
 
@@ -294,48 +286,29 @@ if (applyBulkButton) {
 
 // Initialize when DOM is ready
 document.addEventListener('DOMContentLoaded', function() {
-  debug('DOM loaded, initializing dashboard...');
-  // Check if upload form exists
-  const uploadForm = document.getElementById("uploadForm");
-  if (uploadForm) {
-    debug('Upload form found');
-  } else {
-    console.error('Upload form NOT found!');
-  }
-  
   // Initial refresh
   refresh();
 });
 
 document.getElementById("uploadForm").addEventListener("submit", async e => {
-  debug('========== UPLOAD STARTED ==========');
   e.preventDefault();
   
   const form = e.target;
   const nameInput = form.querySelector('input[name="name"]');
   const fileInput = form.querySelector('input[name="audio"]');
   
-  debug('Form data:', {
-    name: nameInput?.value,
-    fileName: fileInput?.files?.[0]?.name,
-    fileSize: fileInput?.files?.[0]?.size
-  });
-  
   // Validate inputs
   if (!nameInput.value.trim()) {
-    debug('Validation failed: empty name');
     showError('Please enter a stream name');
     return;
   }
   
   if (!fileInput.files || !fileInput.files[0]) {
-    debug('Validation failed: no file selected');
     showError('Please select an MP3 file');
     return;
   }
   
   const fd = new FormData(form);
-  debug('FormData created with entries:', Array.from(fd.keys()));
   
   console.log('Uploading:', nameInput.value, fileInput.files[0].name);
   
@@ -346,15 +319,11 @@ document.getElementById("uploadForm").addEventListener("submit", async e => {
   submitButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Uploading...';
   
   try {
-    debug('Sending POST request to /api/upload');
     const res = await fetchWithError("/api/upload", {
       method: "POST",
       body: fd,
     });
-    
-    debug('Upload response received, status:', res.status);
     const data = await res.json();
-    debug('Response data:', data);
     console.log("Upload success:", data.streamUrl);
     
     // Show success message
@@ -362,15 +331,12 @@ document.getElementById("uploadForm").addEventListener("submit", async e => {
     
     // Wait a moment for FFmpeg to start
     setTimeout(() => {
-      debug('Refreshing streams list after upload');
       refresh();
     }, 500);
     
     form.reset();
-    debug('========== UPLOAD COMPLETED ==========');
   } catch (err) {
     console.error("Upload failed:", err);
-    debug('Upload error details:', err.stack);
     // Error already shown by fetchWithError
   } finally {
     // Restore button state
@@ -381,34 +347,22 @@ document.getElementById("uploadForm").addEventListener("submit", async e => {
 
 // Then update stopStream, startStream, deleteStream:
 async function stopStream(name) {
-  debug('Stopping stream:', name);
   try {
     await fetchWithError(`/api/streams/${name}/stop`, { method: "POST" });
-    debug('Stream stopped successfully');
     refresh();
-  } catch (err) {
-    console.error(`Failed to stop ${name}:`, err);
-  }
+  } catch {}
 }
 
 async function startStream(name) {
-  debug('Starting stream:', name);
   try {
     await fetchWithError(`/api/streams/${name}/start`, { method: "POST" });
-    debug('Stream started successfully');
     refresh();
-  } catch (err) {
-    console.error(`Failed to start ${name}:`, err);
-  }
+  } catch {}
 }
 
 async function deleteStream(name) {
-  debug('Deleting stream:', name);
   try {
     await fetchWithError(`/api/streams/${name}`, { method: "DELETE" });
-    debug('Stream deleted successfully');
     refresh();
-  } catch (err) {
-    console.error(`Failed to delete ${name}:`, err);
-  }
+  } catch {}
 }

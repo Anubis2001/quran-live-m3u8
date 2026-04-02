@@ -381,34 +381,22 @@ document.getElementById("uploadForm").addEventListener("submit", async e => {
 
 // Then update stopStream, startStream, deleteStream:
 async function stopStream(name) {
-  debug('Stopping stream:', name);
   try {
     await fetchWithError(`/api/streams/${name}/stop`, { method: "POST" });
-    debug('Stream stopped successfully');
     refresh();
-  } catch (err) {
-    console.error(`Failed to stop ${name}:`, err);
-  }
+  } catch {}
 }
 
 async function startStream(name) {
-  debug('Starting stream:', name);
   try {
     await fetchWithError(`/api/streams/${name}/start`, { method: "POST" });
-    debug('Stream started successfully');
     refresh();
-  } catch (err) {
-    console.error(`Failed to start ${name}:`, err);
-  }
+  } catch {}
 }
 
 async function deleteStream(name) {
-  debug('Deleting stream:', name);
   try {
     await fetchWithError(`/api/streams/${name}`, { method: "DELETE" });
-    debug('Stream deleted successfully');
     refresh();
-  } catch (err) {
-    console.error(`Failed to delete ${name}:`, err);
-  }
+  } catch {}
 }
