@@ -1,19 +1,9 @@
-function showError(message, isSuccess = false) {
+function showError(message) {
   const container = document.getElementById("errorContainer");
   const text = document.getElementById("errorText");
-  
-  // Update styling based on message type
-  if (isSuccess || message.toLowerCase().includes('success')) {
-    container.className = 'bg-green-200 text-green-800 border border-green-400 px-4 py-3 rounded mb-4';
-    container.querySelector('strong').textContent = 'Success:';
-  } else {
-    container.className = 'bg-red-200 text-red-800 border border-red-400 px-4 py-3 rounded mb-4';
-    container.querySelector('strong').textContent = 'Error:';
-  }
-  
   text.textContent = message;
-  container.classList.remove('hidden');
-  setTimeout(() => container.classList.add('hidden'), 8000);
+  container.classList.remove("hidden");
+  setTimeout(() => container.classList.add("hidden"), 8000);
 }
 
 async function fetchWithError(url, options) {

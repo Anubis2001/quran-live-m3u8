@@ -148,21 +148,8 @@ function startStream(name, filePath) {
 
   ffmpeg.unref();
   runningStreams[name] = { process: ffmpeg, failed: false };
-  
-  ffmpeg.on("error", (err) => {
-    console.error(`FFmpeg error for stream ${name}:`, err);
-    if (runningStreams[name]) {
-      runningStreams[name].failed = true;
-    }
-  });
-  
   ffmpeg.on("exit", code => {
-    if (code !== 0) {
-      console.error(`FFmpeg exited with code ${code} for stream ${name}`);
-      if (runningStreams[name]) {
-        runningStreams[name].failed = true;
-      }
-    }
+    if (code !== 0) runningStreams[name].failed = true;
   });
 }
 
