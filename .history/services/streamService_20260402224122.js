@@ -90,8 +90,7 @@ function saveStreamsMetadata(streamsArray) {
  */
 function startStream(name, filePath) {
   console.log(`\n========== STARTING STREAM: ${name} ==========`);
-  logger.info(`Starting stream: ${name}`);
-  logger.verbose(`Input file: ${filePath}`);
+  console.log(`Input file: ${filePath}`);
   
   // First, ensure any existing process is completely stopped
   const existingEntry = runningStreams[name];
