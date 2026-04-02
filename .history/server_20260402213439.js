@@ -66,6 +66,7 @@ app.get("/__debug/streams", (req, res) => {
 
 // Debug endpoint to check running FFmpeg processes
 app.get("/__debug/ffmpeg", (req, res) => {
+  const { execSync } = require('child_process');
   
   const debugInfo = {
     platform: process.platform,
