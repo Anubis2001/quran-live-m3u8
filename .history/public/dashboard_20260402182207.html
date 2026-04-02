@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Streams Dashboard</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
+</head>
+<body class="bg-gray-100 text-gray-800">
+<div class="container mx-auto p-6">
+  <h1 class="text-3xl font-bold text-center mb-6 text-blue-700">
+    HLS Streams Dashboard
+  </h1>
+
+  <div class="bg-white shadow rounded-lg p-6 mb-6">
+    <h2 class="text-xl mb-4">Upload New Stream</h2>
+    <form id="uploadForm" class="flex flex-col md:flex-row gap-4">
+      <input type="text" name="name" placeholder="Stream Name"
+        class="border p-2 rounded flex-1" required>
+      <input type="file" name="audio" accept=".mp3"
+        class="border p-2 rounded flex-1" required>
+      <button class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+        <i class="fas fa-upload"></i> Upload
+      </button>
+    </form>
+  </div>
+
+  <div class="bg-white shadow rounded-lg p-6">
+    <h2 class="text-xl mb-4">Streams</h2>
+    <ul id="list" class="space-y-4"></ul>
+  </div>
+</div>
+
+<script>
+async function loadStreams() {
+  const res = await fetch('/api/streams');
+  const streams = await res.json();
+  const list = document.getElementById('list');
+  list.innerHTML = '';
+
+  streams.forEach(s => {
+    const url = `http://localhost:8300/streams/${s.name}/stream.m3u8`;
+    const li = document.createElement('li');
+    li.className = "bg-gray-50 border rounded p-4 flex justify-between items-center";
+
+    // status badge
+    let color = "gray";
+    if (s.status === "running") color = "green";
+    else if (s.status === "failed") color = "red";
+    else color = "yellow";
+
+    li.innerHTML = `
+      <div>
+        <div class="text-lg font-semibold text-indigo-700">${s.name}</div>
+        <span class="inline-block px-2 py-1 text-sm font-semibold text-white bg-${color}-500 rounded">
+          ${s.status}
+        </span><br>
+        <a href="${url}" target="_blank"
+          class="text-blue-600 hover:underline">${url}</a>
+      </div>
+      <div class="flex gap-2">
+        <button onclick="stopStream('${s.name}')"
+          class="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600">
+          <i class="fas fa-stop"></i> Stop
+        </button>
+        <button onclick="startStream('${s.name}')"
+          class="bg-green-500 text-white px-3 py-1 rounded hover:bg-green-600">
+          <i class="fas fa-play"></i> Start
+        </button>
+        <button onclick="deleteStream('${s.name}')"
+          class="bg-gray-600 text-white px-3 py-1 rounded hover:bg-gray-700">
+          <i class="fas fa-trash"></i> Delete
+        </button>
+      </div>
+    `;
+    list.appendChild(li);
+  });
+}
+
+async function stopStream(name) {
+  await fetch(`/api/streams/${name}/stop`, { method: 'POST' });
+  loadStreams();
+}
+async function startStream(name) {
+  await fetch(`/api/streams/${name}/start`, { method: 'POST' });
+  loadStreams();
+}
+async function deleteStream(name) {
+  await fetch(`/api/streams/${name}`, { method: 'DELETE' });
+  loadStreams();
+}
+
+document.getElementById('uploadForm').onsubmit = async e => {
+  e.preventDefault();
+  const fd = new FormData(e.target);
+  await fetch('/api/upload', { method: 'POST', body: fd });
+  loadStreams();
+};
+
+loadStreams();
+</script>
+</body>
+</html>

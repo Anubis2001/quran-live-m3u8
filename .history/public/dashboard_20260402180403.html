@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Streams Dashboard</title>
+<!-- TailwindCSS CDN -->
+<script src="https://cdn.tailwindcss.com"></script>
+<!-- Icons -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-papxZp/5tB5l5zCm52PvH1hcFjI0Hhlp/T6Lh4PCwY0c+p85r1NT7cZgG8yM+vC1pBdF5F0O0hUZpJTZ3fPYVA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+</head>
+<body class="bg-gray-100 font-sans">
+
+<div class="container mx-auto p-6">
+    <h1 class="text-3xl font-bold text-center mb-6 text-blue-700">HLS Streams Dashboard</h1>
+
+    <!-- Upload Section -->
+    <div class="bg-white shadow rounded-lg p-6 mb-6">
+        <h2 class="text-xl font-semibold mb-4">Upload New Stream</h2>
+        <form id="upload" class="flex flex-col md:flex-row gap-4">
+            <input type="text" name="name" placeholder="Stream Name" required class="border p-2 rounded flex-1" />
+            <input type="file" name="audio" accept=".mp3" required class="border p-2 rounded flex-1" />
+            <button class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition">Upload & Start</button>
+        </form>
+    </div>
+
+    <!-- Streams List -->
+    <div class="bg-white shadow rounded-lg p-6">
+        <h2 class="text-xl font-semibold mb-4">Running Streams</h2>
+        <ul id="list" class="space-y-4"></ul>
+    </div>
+</div>
+
+<script src="client.js"></script>
+<script>
+async function refresh() {
+    const res = await fetch('/api/streams');
+    const streams = await res.json();
+    const list = document.getElementById('list');
+    list.innerHTML = '';
+
+    streams.forEach(name => {
+        const item = document.createElement('li');
+        item.className = 'bg-gray-50 border border-gray-200 rounded p-4 flex flex-col md:flex-row justify-between items-center';
+        item.innerHTML = `
+            <div class="mb-2 md:mb-0">
+                <strong class="text-blue-700 text-lg">${name}</strong><br />
+                <small class="text-gray-500">/streams/${name}/stream.m3u8</small>
+            </div>
+            <div class="flex gap-2">
+                <button onclick="stop('${name}')" class="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600 transition"><i class="fas fa-stop"></i> Stop</button>
+                <button onclick="start('${name}')" class="bg-green-500 text-white px-3 py-1 rounded hover:bg-green-600 transition"><i class="fas fa-play"></i> Start</button>
+                <button onclick="del('${name}')" class="bg-gray-500 text-white px-3 py-1 rounded hover:bg-gray-600 transition"><i class="fas fa-trash"></i> Delete</button>
+            </div>
+        `;
+        list.appendChild(item);
+    });
+}
+
+async function stop(name) { await fetch(`/api/streams/${name}/stop`, { method: 'POST' }); refresh(); }
+async function start(name) { await fetch(`/api/streams/${name}/start`, { method: 'POST' }); refresh(); }
+async function del(name) { await fetch(`/api/streams/${name}`, { method: 'DELETE' }); refresh(); }
+
+document.getElementById('upload').onsubmit = async e => {
+    e.preventDefault();
+    const fd = new FormData(e.target);
+    await fetch('/api/upload', { method: 'POST', body: fd });
+    refresh();
+};
+
+refresh();
+</script>
+</body>
+</html>
