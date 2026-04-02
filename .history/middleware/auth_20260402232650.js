@@ -98,9 +98,6 @@ function setupAuthentication(app) {
   
   // Upload endpoint specifically requires admin
   app.post("/api/upload", authMiddleware, requireAdmin);
-  
-  // Debug endpoints also require admin authentication
-  app.use("/__debug", authMiddleware, requireAdmin);
 }
 
 module.exports = { setupAuthentication };
