@@ -214,28 +214,46 @@ app.post("/api/streams/:name/start", (req, res) => {
 
 // stop one
 app.post("/api/streams/:name/stop", (req, res) => {
+  console.log(`Stop request received for stream: ${req.params.name}`);
   const result = stopStream(req.params.name);
-  if (result) {
-    res.send("Stopped");
-  } else {
-    res.status(404).send("Stream not found or not running");
-  }
+  
+  // Wait a moment to ensure process termination completes
+  setTimeout(() => {
+    if (result) {
+      res.send("Stopped");
+    } else {
+      res.status(404).send("Stream not found or not running");
+    }
+  }, 500);
 });
 
 // delete one
 app.delete("/api/streams/:name", (req, res) => {
   const name = req.params.name;
+  console.log(`Delete request received for stream: ${name}`);
+  
   // Always stop the stream first to kill FFmpeg process
   stopStream(name);
-  const folder = path.join(__dirname, "streams", name);
-  fs.rmSync(folder, { recursive: true, force: true });
   
-  // Remove from metadata
-  const streamsMetadata = loadStreamsMetadata();
-  const filteredMetadata = streamsMetadata.filter(s => s.name !== name);
-  saveStreamsMetadata(filteredMetadata);
-  
-  res.send("Deleted");
+  // Wait a moment to ensure process is killed before deleting files
+  setTimeout(() => {
+    try {
+      const folder = path.join(__dirname, "streams", name);
+      console.log(`Deleting folder: ${folder}`);
+      fs.rmSync(folder, { recursive: true, force: true });
+      
+      // Remove from metadata
+      const streamsMetadata = loadStreamsMetadata();
+      const filteredMetadata = streamsMetadata.filter(s => s.name !== name);
+      saveStreamsMetadata(filteredMetadata);
+      
+      console.log(`Stream ${name} deleted successfully`);
+      res.send("Deleted");
+    } catch (err) {
+      console.error(`Error deleting stream ${name}:`, err);
+      res.status(500).send("Error deleting stream");
+    }
+  }, 1000); // Wait 1 second to ensure process is fully terminated
 });
 
 // FFmpeg HLS loop - uses exact command pattern:
@@ -260,49 +278,75 @@ function startStream(name, filePath) {
     delete runningStreams[name];
   }
   
-  // Wait a brief moment to ensure old process is cleaned up
-  setTimeout(() => {
-    const dir = path.dirname(filePath);
-    console.log(`Output directory: ${dir}`);
-    
-    const ffmpegArgs = [
-      "-re",                    // Read input at native frame rate
-      "-stream_loop", "-1",     // Loop indefinitely
-      "-i", filePath,           // Input MP3 file
-      "-c:a", "copy",           // Copy audio codec (no re-encoding)
-      "-hls_time", "4",         // Each segment is 4 seconds
-      "-hls_list_size", "5",    // Keep 5 segments in playlist
-      "-hls_flags", "delete_segments",  // Delete old segments
-      "-hls_segment_filename", `${dir}/seg_%03d.ts`,  // Segment filename pattern
-      `${dir}/stream.m3u8`      // Output playlist file
-    ];
-    
-    console.log(`FFmpeg command: ffmpeg ${ffmpegArgs.join(' ')}`);
-    
-    const ffmpeg = spawn("ffmpeg", ffmpegArgs, { detached: false, stdio: ['ignore', 'pipe', 'pipe'] });
-    
-    // Don't unref - keep reference so we can properly track and kill it
-    // Store additional info for better process management
-    runningStreams[name] = { 
-      process: ffmpeg, 
-      failed: false,
-      startTime: new Date(),
-      pid: ffmpeg.pid
-    };
-    
-    console.log(`FFmpeg process spawned for stream ${name} with PID: ${ffmpeg.pid}`);
-    
-    // Capture stderr for debugging
-    ffmpeg.stderr.on('data', (data) => {
-      const msg = data.toString();
-      if (msg.includes('error') || msg.includes('Error')) {
-        console.error(`FFmpeg stderr: ${msg}`);
+  const dir = path.dirname(filePath);
+  console.log(`Output directory: ${dir}`);
+  
+  // Verify input file exists
+  if (!fs.existsSync(filePath)) {
+    console.error(`Input file does not exist: ${filePath}`);
+    return;
+  }
+  
+  const ffmpegArgs = [
+    "-re",                    // Read input at native frame rate
+    "-stream_loop", "-1",     // Loop indefinitely
+    "-i", filePath,           // Input MP3 file
+    "-c:a", "copy",           // Copy audio codec (no re-encoding)
+    "-hls_time", "4",         // Each segment is 4 seconds
+    "-hls_list_size", "5",    // Keep 5 segments in playlist
+    "-hls_flags", "delete_segments",  // Delete old segments
+    "-hls_segment_filename", `${dir}/seg_%03d.ts`,  // Segment filename pattern
+    `${dir}/stream.m3u8`      // Output playlist file
+  ];
+  
+  console.log(`FFmpeg command: ffmpeg ${ffmpegArgs.join(' ')}`);
+  
+  const ffmpeg = spawn("ffmpeg", ffmpegArgs, { detached: false, stdio: ['ignore', 'pipe', 'pipe'] });
+  
+  // Don't unref - keep reference so we can properly track and kill it
+  // Store additional info for better process management
+  runningStreams[name] = { 
+    process: ffmpeg, 
+    failed: false,
+    startTime: new Date(),
+    pid: ffmpeg.pid
+  };
+  
+  console.log(`FFmpeg process spawned for stream ${name} with PID: ${ffmpeg.pid}`);
+  
+  // Capture stdout for debugging
+  ffmpeg.stdout.on('data', (data) => {
+    console.log(`FFmpeg stdout: ${data.toString().trim()}`);
+  });
+  
+  // Capture stderr for debugging
+  ffmpeg.stderr.on('data', (data) => {
+    const msg = data.toString();
+    // Log all stderr for better debugging
+    console.log(`FFmpeg stderr: ${msg.trim()}`);
+  });
+  
+  ffmpeg.on("error", (err) => {
+    console.error(`FFmpeg error for stream ${name}:`, err);
+    if (runningStreams[name]) {
+      runningStreams[name].failed = true;
+      // Update metadata with failed status
+      const streamsMetadata = loadStreamsMetadata();
+      const streamIndex = streamsMetadata.findIndex(s => s.name === name);
+      if (streamIndex !== -1) {
+        streamsMetadata[streamIndex].failed = true;
+        saveStreamsMetadata(streamsMetadata);
       }
-    });
+    }
+  });
+  
+  ffmpeg.on("exit", code => {
+    console.log(`FFmpeg exit handler called for ${name} with code ${code}`);
     
-    ffmpeg.on("error", (err) => {
-      console.error(`FFmpeg error for stream ${name}:`, err);
-      if (runningStreams[name]) {
+    // Clean up the entry when process exits
+    if (runningStreams[name]) {
+      if (code !== 0) {
+        console.error(`FFmpeg exited with code ${code} for stream ${name}`);
         runningStreams[name].failed = true;
         // Update metadata with failed status
         const streamsMetadata = loadStreamsMetadata();
@@ -311,35 +355,16 @@ function startStream(name, filePath) {
           streamsMetadata[streamIndex].failed = true;
           saveStreamsMetadata(streamsMetadata);
         }
+      } else {
+        console.log(`FFmpeg process ended cleanly for stream ${name}`);
       }
-    });
-    
-    ffmpeg.on("exit", code => {
-      console.log(`FFmpeg exit handler called for ${name} with code ${code}`);
-      
-      // Clean up the entry when process exits
-      if (runningStreams[name]) {
-        if (code !== 0) {
-          console.error(`FFmpeg exited with code ${code} for stream ${name}`);
-          runningStreams[name].failed = true;
-          // Update metadata with failed status
-          const streamsMetadata = loadStreamsMetadata();
-          const streamIndex = streamsMetadata.findIndex(s => s.name === name);
-          if (streamIndex !== -1) {
-            streamsMetadata[streamIndex].failed = true;
-            saveStreamsMetadata(streamsMetadata);
-          }
-        } else {
-          console.log(`FFmpeg process ended cleanly for stream ${name}`);
-        }
-        // Remove from running streams after it exits
-        delete runningStreams[name];
-      }
-    });
-  }, 100); // Small delay to ensure cleanup
+      // Remove from running streams after it exits
+      delete runningStreams[name];
+    }
+  });
 }
 
-// Improved stop function with proper process termination
+// Improved stop function with proper process termination and verification
 function stopStream(name) {
   console.log(`Stopping stream: ${name}`);
   const ent = runningStreams[name];
@@ -358,36 +383,186 @@ function stopStream(name) {
       return false;
     }
     
-    console.log(`Killing FFmpeg process ${name} (PID: ${proc.pid})`);
+    const pid = proc.pid;
+    console.log(`Killing FFmpeg process ${name} (PID: ${pid})`);
+    console.log(`Detected OS: ${process.platform}`);
     
-    // Send SIGTERM first for graceful shutdown
-    try {
-      proc.kill('SIGTERM');
-      console.log(`Sent SIGTERM to process ${proc.pid}`);
-    } catch (killErr) {
-      console.error(`Error sending SIGTERM:`, killErr);
-    }
-    
-    // Set a timeout to force kill if still running after 3 seconds
-    const forceKillTimeout = setTimeout(() => {
-      if (!proc.killed) {
-        console.warn(`Process ${proc.pid} didn't terminate gracefully, force killing`);
-        try {
-          // On Windows, use taskkill to forcefully terminate the process tree
-          if (process.platform === 'win32') {
-            const { execSync } = require('child_process');
-            execSync(`taskkill /pid ${proc.pid} /T /F`);
-          } else {
-            proc.kill('SIGKILL');
+    // Create a promise that resolves when process is confirmed dead
+    const killProcess = () => {
+      return new Promise((resolve, reject) => {
+        let processDead = false;
+        
+        // Function to check if process is still running
+        const isProcessRunning = (pid) => {
+          try {
+            // Cross-platform method to check if process exists
+            process.kill(pid, 0);
+            return true;
+          } catch (e) {
+            return false;
           }
-          console.log(`Force killed process ${proc.pid}`);
-        } catch (forceErr) {
-          console.error(`Error force killing process:`, forceErr);
+        };
+        
+        // Determine the best kill method based on OS
+        const getKillMethod = () => {
+          if (process.platform === 'win32') {
+            return 'taskkill';
+          } else if (process.platform === 'linux' || process.platform === 'darwin') {
+            return 'signal';
+          } else {
+            // Fallback for other platforms
+            return 'generic';
+          }
+        };
+        
+        const killMethod = getKillMethod();
+        console.log(`Using kill method: ${killMethod} for platform ${process.platform}`);
+        
+        // Step 1: Try graceful shutdown first with SIGTERM
+        try {
+          proc.kill('SIGTERM');
+          console.log(`Sent SIGTERM to process ${pid}`);
+        } catch (sigtermErr) {
+          console.error(`Error sending SIGTERM:`, sigtermErr);
         }
-      }
-    }, 3000);
+        
+        // Check every 500ms if process is dead, force kill after 2 seconds
+        const checkInterval = setInterval(() => {
+          if (!isProcessRunning(pid)) {
+            console.log(`Process ${pid} terminated successfully after SIGTERM`);
+            clearInterval(checkInterval);
+            clearTimeout(forceKillTimeout);
+            resolve(true);
+          }
+        }, 500);
+        
+        // Force kill timeout after 2 seconds
+        const forceKillTimeout = setTimeout(() => {
+          clearInterval(checkInterval);
+          
+          if (isProcessRunning(pid)) {
+            console.warn(`Process ${pid} didn't terminate gracefully, using force kill method: ${killMethod}`);
+            
+            try {
+              if (killMethod === 'taskkill') {
+                // Windows: Use taskkill to forcefully terminate the process tree
+                console.log(`Executing: taskkill /pid ${pid} /T /F`);
+                const { execSync } = require('child_process');
+                const result = execSync(`taskkill /pid ${pid} /T /F`, { 
+                  encoding: 'utf8',
+                  stdio: ['ignore', 'pipe', 'pipe']
+                });
+                console.log(`taskkill output: ${result.trim()}`);
+                console.log(`Force killed process ${pid} using taskkill (Windows)`);
+                
+              } else if (killMethod === 'signal') {
+                // Linux/Unix/Mac: Use SIGKILL signal
+                console.log(`Sending SIGKILL to process ${pid}`);
+                proc.kill('SIGKILL');
+                console.log(`Force killed process ${pid} using SIGKILL (${process.platform})`);
+                
+              } else {
+                // Generic fallback: Try both methods
+                console.log(`Using generic kill method for unknown platform`);
+                try {
+                  proc.kill('SIGKILL');
+                } catch (e) {
+                  // If signal fails, try exec method
+                  try {
+                    const { execSync } = require('child_process');
+                    execSync(`kill -9 ${pid}`, { stdio: 'ignore' });
+                  } catch (execErr) {
+                    console.error(`Generic kill method failed:`, execErr);
+                  }
+                }
+                console.log(`Force killed process ${pid} using generic method`);
+              }
+              
+              // Wait and verify the process is actually dead
+              setTimeout(() => {
+                if (!isProcessRunning(pid)) {
+                  console.log(`Force killed process ${pid} confirmed dead`);
+                  resolve(true);
+                } else {
+                  console.error(`Process ${pid} still running after force kill attempt`);
+                  
+                  // Last resort: Try alternative method
+                  if (killMethod === 'taskkill') {
+                    // On Windows, if taskkill failed, try SIGKILL
+                    console.log(`Taskkill failed, trying SIGKILL as fallback`);
+                    try {
+                      proc.kill('SIGKILL');
+                      setTimeout(() => {
+                        if (!isProcessRunning(pid)) {
+                          console.log(`Fallback SIGKILL succeeded for process ${pid}`);
+                          resolve(true);
+                        } else {
+                          reject(new Error(`Process ${pid} refused to die`));
+                        }
+                      }, 1000);
+                    } catch (fallbackErr) {
+                      reject(new Error(`All kill methods failed for process ${pid}`));
+                    }
+                  } else {
+                    // On Unix, if SIGKILL failed, try exec method
+                    console.log(`SIGKILL failed, trying exec kill as fallback`);
+                    try {
+                      const { execSync } = require('child_process');
+                      if (process.platform === 'win32') {
+                        execSync(`taskkill /pid ${pid} /T /F`, { stdio: 'ignore' });
+                      } else {
+                        execSync(`kill -9 ${pid}`, { stdio: 'ignore' });
+                      }
+                      setTimeout(() => {
+                        if (!isProcessRunning(pid)) {
+                          console.log(`Fallback exec kill succeeded for process ${pid}`);
+                          resolve(true);
+                        } else {
+                          reject(new Error(`Process ${pid} refused to die`));
+                        }
+                      }, 1000);
+                    } catch (fallbackErr) {
+                      reject(new Error(`All kill methods failed for process ${pid}`));
+                    }
+                  }
+                }
+              }, 1000);
+              
+            } catch (forceErr) {
+              console.error(`Error force killing process with ${killMethod}:`, forceErr);
+              reject(forceErr);
+            }
+          } else {
+            resolve(true);
+          }
+        }, 2000);
+        
+        // Timeout after 5 seconds total
+        setTimeout(() => {
+          clearInterval(checkInterval);
+          clearTimeout(forceKillTimeout);
+          
+          if (isProcessRunning(pid)) {
+            console.error(`Process ${pid} still running after 5 seconds, all methods failed`);
+            reject(new Error(`Process ${pid} did not terminate after 5 seconds`));
+          } else {
+            console.log(`Process ${pid} confirmed dead before timeout`);
+            resolve(true);
+          }
+        }, 5000);
+      });
+    };
     
-    // Clean up immediately from our tracking
+    // Execute the kill and wait for confirmation
+    killProcess()
+      .then(() => {
+        console.log(`Stream ${name} process ${pid} fully terminated`);
+      })
+      .catch((err) => {
+        console.error(`Error terminating process for ${name}:`, err);
+      });
+    
+    // Clean up immediately from our tracking (don't wait)
     delete runningStreams[name];
     
     console.log(`Stream ${name} stop initiated successfully`);
