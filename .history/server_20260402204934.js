@@ -34,26 +34,6 @@ app.use("/streams", express.static(path.join(__dirname, "streams"), {
   }
 }));
 
-// Debug endpoint to check if streams folder exists and is readable
-app.get("/streams", (req, res) => {
-  console.log('Debug: /streams directory listing requested');
-  const streamsDir = path.join(__dirname, "streams");
-  if (fs.existsSync(streamsDir)) {
-    const folders = fs.readdirSync(streamsDir).filter(f => {
-      const stat = fs.statSync(path.join(streamsDir, f));
-      return stat.isDirectory();
-    });
-    res.json({
-      status: 'ok',
-      streamsDirectory: streamsDir,
-      availableStreams: folders,
-      message: 'Stream files are accessible. Access individual streams at /streams/[stream-name]/stream.m3u8'
-    });
-  } else {
-    res.status(404).json({ error: 'Streams directory does not exist' });
-  }
-});
-
 // Serve public folder (dashboard.html, client.js, etc.) WITHOUT auth for scripts
 // Note: Dashboard itself is protected via route below
 app.use(express.static(path.join(__dirname, "public")));

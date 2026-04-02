@@ -13,46 +13,8 @@ if (!fs.existsSync(path.join(__dirname, "uploads"))) {
   fs.mkdirSync(path.join(__dirname, "uploads"));
 }
 
-// PUBLIC: serve .m3u8 and .ts files without auth - MUST be before auth middleware
-console.log(`Setting up static file serving for streams directory: ${path.join(__dirname, "streams")}`);
-app.use("/streams", express.static(path.join(__dirname, "streams"), {
-  dotfiles: 'ignore',
-  etag: true,
-  extensions: ['m3u8', 'ts'],
-  immutable: false,
-  maxAge: '1s', // Don't cache for too long as segments change
-  redirect: false,
-  setHeaders: (res, path, stat) => {
-    // Set proper MIME types for HLS streaming
-    if (path.endsWith('.m3u8')) {
-      res.setHeader('Content-Type', 'application/vnd.apple.mpegurl');
-    } else if (path.endsWith('.ts')) {
-      res.setHeader('Content-Type', 'video/mp2t');
-    }
-    // Allow CORS for external access
-    res.setHeader('Access-Control-Allow-Origin', '*');
-  }
-}));
-
-// Debug endpoint to check if streams folder exists and is readable
-app.get("/streams", (req, res) => {
-  console.log('Debug: /streams directory listing requested');
-  const streamsDir = path.join(__dirname, "streams");
-  if (fs.existsSync(streamsDir)) {
-    const folders = fs.readdirSync(streamsDir).filter(f => {
-      const stat = fs.statSync(path.join(streamsDir, f));
-      return stat.isDirectory();
-    });
-    res.json({
-      status: 'ok',
-      streamsDirectory: streamsDir,
-      availableStreams: folders,
-      message: 'Stream files are accessible. Access individual streams at /streams/[stream-name]/stream.m3u8'
-    });
-  } else {
-    res.status(404).json({ error: 'Streams directory does not exist' });
-  }
-});
+// PUBLIC: serve .m3u8 and .ts files without auth
+app.use("/streams", express.static(path.join(__dirname, "streams")));
 
 // Serve public folder (dashboard.html, client.js, etc.) WITHOUT auth for scripts
 // Note: Dashboard itself is protected via route below
