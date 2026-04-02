@@ -35,16 +35,6 @@ const upload = multer({ dest: "uploads/" });
 const runningStreams = {};
 const STREAMS_DB_FILE = path.join(__dirname, "streams.json");
 
-// Check if FFmpeg is available
-const { execSync } = require("child_process");
-try {
-  execSync("ffmpeg -version", { stdio: "ignore" });
-  console.log("✓ FFmpeg is installed and available");
-} catch (err) {
-  console.error("✗ FFmpeg is not installed or not in PATH");
-  console.error("Please install FFmpeg from https://ffmpeg.org/download.html");
-}
-
 // Load streams metadata from persistent storage
 function loadStreamsMetadata() {
   try {
@@ -225,39 +215,30 @@ app.delete("/api/streams/:name", (req, res) => {
   res.send("Deleted");
 });
 
-// FFmpeg HLS loop - uses exact command pattern:
-// ffmpeg -re -stream_loop -1 -i [input] -c:a copy -hls_time 4 -hls_list_size 5 -hls_flags delete_segments -hls_segment_filename [output-dir]/seg_%03d.ts [output-dir]/stream.m3u8
+// FFmpeg HLS loop
 function startStream(name, filePath) {
-  console.log(`Starting stream: ${name} with file: ${filePath}`);
-  
-  if (runningStreams[name] && runningStreams[name].process.exitCode === null) {
-    console.log(`Stream ${name} is already running`);
-    return;
-  }
+  if (runningStreams[name] && runningStreams[name].process.exitCode === null) return;
 
   const dir = path.dirname(filePath);
-  console.log(`Output directory: ${dir}`);
-  
-  const ffmpegArgs = [
-    "-re",                    // Read input at native frame rate
-    "-stream_loop", "-1",     // Loop indefinitely
-    "-i", filePath,           // Input MP3 file
-    "-c:a", "copy",           // Copy audio codec (no re-encoding)
-    "-hls_time", "4",         // Each segment is 4 seconds
-    "-hls_list_size", "5",    // Keep 5 segments in playlist
-    "-hls_flags", "delete_segments",  // Delete old segments
-    "-hls_segment_filename", `${dir}/seg_%03d.ts`,  // Segment filename pattern
-    `${dir}/stream.m3u8`      // Output playlist file
-  ];
-  
-  console.log(`FFmpeg command: ffmpeg ${ffmpegArgs.join(' ')}`);
-  
-  const ffmpeg = spawn("ffmpeg", ffmpegArgs, { detached: true, stdio: "ignore" });
+  const ffmpeg = spawn(
+    "ffmpeg",
+    [
+      "-re",
+      "-stream_loop", "-1",
+      "-i", filePath,
+      "-c:a", "copy",
+      "-hls_time", "4",
+      "-hls_list_size", "5",
+      "-hls_flags", "delete_segments",
+      "-hls_segment_filename",
+      `${dir}/seg_%03d.ts`,
+      `${dir}/stream.m3u8`,
+    ],
+    { detached: true, stdio: "ignore" }
+  );
 
   ffmpeg.unref();
   runningStreams[name] = { process: ffmpeg, failed: false };
-  
-  console.log(`FFmpeg process spawned for stream ${name} with PID: ${ffmpeg.pid}`);
   
   ffmpeg.on("error", (err) => {
     console.error(`FFmpeg error for stream ${name}:`, err);
@@ -286,8 +267,6 @@ function startStream(name, filePath) {
           saveStreamsMetadata(streamsMetadata);
         }
       }
-    } else {
-      console.log(`FFmpeg process ended cleanly for stream ${name}`);
     }
   });
 }
@@ -302,9 +281,4 @@ function stopStream(name) {
 
 restoreStreams();
 const PORT = process.env.PORT || 8300;
-const HOST = '0.0.0.0';
-app.listen(PORT, HOST, () => {
-  console.log(`Server running on http://${HOST}:${PORT}`);
-  console.log(`Accessible locally at: http://localhost:${PORT}`);
-  console.log(`Accessible from network at: http://[your-ip]:${PORT}`);
-});
+app.listen(PORT, () => console.log("Server running on port " + PORT));

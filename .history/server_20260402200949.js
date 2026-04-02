@@ -302,9 +302,4 @@ function stopStream(name) {
 
 restoreStreams();
 const PORT = process.env.PORT || 8300;
-const HOST = '0.0.0.0';
-app.listen(PORT, HOST, () => {
-  console.log(`Server running on http://${HOST}:${PORT}`);
-  console.log(`Accessible locally at: http://localhost:${PORT}`);
-  console.log(`Accessible from network at: http://[your-ip]:${PORT}`);
-});
+app.listen(PORT, () => console.log("Server running on port " + PORT));
