@@ -115,9 +115,7 @@ app.get("/__debug/ffmpeg", (req, res) => {
       alive: stream.process && !stream.process.killed,
       playlistExists: stream.outputPlaylist && fs.existsSync(stream.outputPlaylist),
       segmentExists: stream.outputSegment && fs.existsSync(path.dirname(stream.outputSegment)),
-      outputDir: stream.workingDir || (stream.outputPlaylist ? path.dirname(stream.outputPlaylist) : 'unknown'),
-      workingDirectory: stream.workingDir,
-      cwd: process.cwd()
+      outputDir: stream.outputPlaylist ? path.dirname(stream.outputPlaylist) : 'unknown'
     };
   });
   

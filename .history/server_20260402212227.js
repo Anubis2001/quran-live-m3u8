@@ -115,9 +115,7 @@ app.get("/__debug/ffmpeg", (req, res) => {
       alive: stream.process && !stream.process.killed,
       playlistExists: stream.outputPlaylist && fs.existsSync(stream.outputPlaylist),
       segmentExists: stream.outputSegment && fs.existsSync(path.dirname(stream.outputSegment)),
-      outputDir: stream.workingDir || (stream.outputPlaylist ? path.dirname(stream.outputPlaylist) : 'unknown'),
-      workingDirectory: stream.workingDir,
-      cwd: process.cwd()
+      outputDir: stream.outputPlaylist ? path.dirname(stream.outputPlaylist) : 'unknown'
     };
   });
   
@@ -748,23 +746,12 @@ function startStream(name, filePath) {
         setTimeout(() => {
           try {
             const dirContents = fs.readdirSync(dir);
-            console.log(`\n📁 Directory contents during encoding (${dir}):`);
+            console.log(`\n📁 Directory contents during encoding:`);
             dirContents.forEach(file => {
               const filePath = path.join(dir, file);
               const stats = fs.statSync(filePath);
               console.log(`  ${file} (${stats.size} bytes, ${stats.isDirectory() ? 'DIR' : 'FILE'})`);
             });
-            
-            // Also list what's in the streams folder root
-            if (fs.existsSync(streamsPath)) {
-              const rootContents = fs.readdirSync(streamsPath);
-              console.log(`\n📁 Streams folder root (${streamsPath}):`);
-              rootContents.forEach(file => {
-                const filePath = path.join(streamsPath, file);
-                const stats = fs.statSync(filePath);
-                console.log(`  ${file} (${stats.isDirectory() ? 'DIR' : 'FILE'})`);
-              });
-            }
             console.log('');
           } catch (listErr) {
             console.error(`Error listing directory:`, listErr.message);

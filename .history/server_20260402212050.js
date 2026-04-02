@@ -115,9 +115,7 @@ app.get("/__debug/ffmpeg", (req, res) => {
       alive: stream.process && !stream.process.killed,
       playlistExists: stream.outputPlaylist && fs.existsSync(stream.outputPlaylist),
       segmentExists: stream.outputSegment && fs.existsSync(path.dirname(stream.outputSegment)),
-      outputDir: stream.workingDir || (stream.outputPlaylist ? path.dirname(stream.outputPlaylist) : 'unknown'),
-      workingDirectory: stream.workingDir,
-      cwd: process.cwd()
+      outputDir: stream.outputPlaylist ? path.dirname(stream.outputPlaylist) : 'unknown'
     };
   });
   
@@ -590,11 +588,6 @@ function startStream(name, filePath) {
   const dir = path.dirname(filePath);
   console.log(`Output directory: ${dir}`);
   
-  // CRITICAL FIX for Linux: Change to output directory before running FFmpeg
-  // This ensures relative paths and segment naming work correctly
-  process.chdir(dir);
-  console.log(`Changed working directory to: ${process.cwd()}`);
-  
   // Verify input file exists
   if (!fs.existsSync(filePath)) {
     console.error(`❌ Input file does not exist: ${filePath}`);
@@ -603,15 +596,14 @@ function startStream(name, filePath) {
   
   console.log(`✓ Input file exists: ${filePath}`);
   
-  // Build FFmpeg arguments for Linux - use RELATIVE paths for outputs
-  // This is CRITICAL for proper segment file creation
-  const outputPlaylist = 'stream.m3u8';  // Relative to working directory
-  const outputSegment = 'seg_%03d.ts';   // Relative to working directory
+  // Build FFmpeg arguments for Linux
+  const outputPlaylist = path.join(dir, 'stream.m3u8');
+  const outputSegment = path.join(dir, 'seg_%03d.ts');
   
   const ffmpegArgs = [
     "-re",                           // Read input at native frame rate
     "-stream_loop", "-1",            // Loop indefinitely
-    "-i", filePath,                  // Input MP3 file (absolute path)
+    "-i", filePath,                  // Input MP3 file
     "-c:a", "copy",                  // Copy audio codec (no re-encoding)
     "-hls_time", "4",                // Each segment is 4 seconds
     "-hls_list_size", "5",           // Keep 5 segments in playlist
@@ -622,10 +614,9 @@ function startStream(name, filePath) {
   
   console.log(`\nFFmpeg command:`);
   console.log(`ffmpeg ${ffmpegArgs.join(' ')}`);
-  console.log(`\nExpected outputs (in ${dir}):`);
+  console.log(`\nExpected outputs:`);
   console.log(`  Playlist: ${outputPlaylist}`);
   console.log(`  Segments: ${outputSegment}`);
-  console.log(`  Full playlist path will be: ${path.join(dir, outputPlaylist)}`);
   
   // CRITICAL: Check write permissions on output directory
   try {
@@ -633,7 +624,6 @@ function startStream(name, filePath) {
     fs.writeFileSync(testFile, 'test');
     fs.unlinkSync(testFile);
     console.log(`✓ Write permissions OK for: ${dir}`);
-    console.log(`Directory is writable: ${fs.accessSync(dir, fs.constants.W_OK) === undefined}`);
   } catch (writeErr) {
     console.error(`❌ CANNOT WRITE to output directory: ${dir}`);
     console.error(`Error:`, writeErr.message);
@@ -659,33 +649,30 @@ function startStream(name, filePath) {
   // Spawn FFmpeg with shell enabled on Linux for better process management
   const isLinux = process.platform === 'linux';
   const spawnOptions = {
-    cwd: dir,              // CRITICAL: Set working directory to output folder
     detached: false,
     stdio: ['ignore', 'pipe', 'pipe'],
-    shell: isLinux,        // Use shell on Linux for better signal handling
-    env: { ...process.env } // Inherit environment variables
+    shell: isLinux  // Use shell on Linux for better signal handling
   };
   
   console.log(`\nSpawn options: ${JSON.stringify(spawnOptions)}`);
   console.log(`Running on Linux: ${isLinux}`);
-  console.log(`Working directory set to: ${dir}`);
+  console.log(`Current working directory: ${process.cwd()}`);
   console.log(`Process user: ${process.env.USER || process.env.USERNAME || 'unknown'}\n`);
   
   const ffmpeg = spawn("ffmpeg", ffmpegArgs, spawnOptions);
   
-  // Store process info with ABSOLUTE paths for tracking
+  // Store process info
   runningStreams[name] = { 
     process: ffmpeg, 
     failed: false,
     startTime: new Date(),
     pid: ffmpeg.pid,
-    outputPlaylist: path.join(dir, outputPlaylist),  // Absolute path for tracking
-    outputSegment: path.join(dir, outputSegment),    // Absolute path for tracking
-    workingDir: dir                                  // Track actual working directory
+    outputPlaylist: outputPlaylist,
+    outputSegment: outputSegment
   };
   
   console.log(`FFmpeg process spawned for stream ${name} with PID: ${ffmpeg.pid}`);
-  console.log(`Waiting for stream files to be created in: ${dir}\n`);
+  console.log(`Waiting for stream files to be created...\n`);
   
   // Monitor output directory for file creation
   const fileCreationTimeouts = [];
@@ -699,16 +686,14 @@ function startStream(name, filePath) {
         hasCreatedPlaylist = true;
         const stats = fs.statSync(filePath);
         console.log(`  Playlist size: ${stats.size} bytes`);
-        console.log(`  Playlist modified: ${stats.mtime}`);
       }
     }, delayMs);
     fileCreationTimeouts.push(timeout);
   };
   
-  // Use ABSOLUTE paths for monitoring
-  checkFileExists(path.join(dir, outputPlaylist), 'Playlist (1s)', 1000);
-  checkFileExists(path.join(dir, outputPlaylist), 'Playlist (2s)', 2000);
-  checkFileExists(path.join(dir, outputPlaylist), 'Playlist (5s)', 5000);
+  checkFileExists(outputPlaylist, 'Playlist (1s)', 1000);
+  checkFileExists(outputPlaylist, 'Playlist (2s)', 2000);
+  checkFileExists(outputPlaylist, 'Playlist (5s)', 5000);
   checkFileExists(path.join(dir, 'seg_000.ts'), 'First segment (3s)', 3000);
   checkFileExists(path.join(dir, 'seg_000.ts'), 'First segment (5s)', 5000);
   
@@ -748,23 +733,12 @@ function startStream(name, filePath) {
         setTimeout(() => {
           try {
             const dirContents = fs.readdirSync(dir);
-            console.log(`\n📁 Directory contents during encoding (${dir}):`);
+            console.log(`\n📁 Directory contents during encoding:`);
             dirContents.forEach(file => {
               const filePath = path.join(dir, file);
               const stats = fs.statSync(filePath);
               console.log(`  ${file} (${stats.size} bytes, ${stats.isDirectory() ? 'DIR' : 'FILE'})`);
             });
-            
-            // Also list what's in the streams folder root
-            if (fs.existsSync(streamsPath)) {
-              const rootContents = fs.readdirSync(streamsPath);
-              console.log(`\n📁 Streams folder root (${streamsPath}):`);
-              rootContents.forEach(file => {
-                const filePath = path.join(streamsPath, file);
-                const stats = fs.statSync(filePath);
-                console.log(`  ${file} (${stats.isDirectory() ? 'DIR' : 'FILE'})`);
-              });
-            }
             console.log('');
           } catch (listErr) {
             console.error(`Error listing directory:`, listErr.message);
