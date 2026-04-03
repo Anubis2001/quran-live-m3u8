@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HLS Streams Dashboard</title>
+
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet"
+ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
+<style>
+  /* Custom scrollbar for better aesthetics */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  ::-webkit-scrollbar-track {
+    background: #f1f5f9;
+    border-radius: 4px;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 4px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+  }
+  
+  /* Smooth transitions */
+  .transition-all {
+    transition-property: all;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    transition-duration: 200ms;
+  }
+  
+  /* Card hover effects */
+  .stream-card {
+    transition: all 0.2s ease-in-out;
+  }
+  .stream-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+  }
+  
+  /* Button animations */
+  .btn-action {
+    transition: all 0.15s ease;
+  }
+  .btn-action:hover {
+    transform: scale(1.05);
+  }
+  .btn-action:active {
+    transform: scale(0.95);
+  }
+  
+  /* Checkbox styling */
+  input[type="checkbox"] {
+    cursor: pointer;
+  }
+  
+  /* URL button hover effect */
+  button[onclick*="copyStreamUrl"]:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  }
+  button[onclick*="copyStreamUrl"]:active {
+    transform: translateY(0);
+  }
+  
+  /* Loading spinner animation */
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+  .fa-spin {
+    animation: spin 1s linear infinite;
+  }
+  
+  /* Status indicator pulse */
+  .status-running {
+    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: .5; }
+  }
+  
+  /* Responsive container */
+  .container {
+    width: 100%;
+    padding-right: 1rem;
+    padding-left: 1rem;
+    margin-right: auto;
+    margin-left: auto;
+  }
+  
+  @media (min-width: 640px) {
+    .container {
+      max-width: 640px;
+    }
+  }
+  
+  @media (min-width: 768px) {
+    .container {
+      max-width: 768px;
+    }
+  }
+  
+  @media (min-width: 1024px) {
+    .container {
+      max-width: 1024px;
+    }
+  }
+</style>
+</head>
+<body class="bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 min-h-screen">
+
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+  <!-- Header with Login Status -->
+  <div class="flex justify-between items-center mb-8">
+    <div class="text-center flex-1">
+      <h1 class="text-4xl md:text-5xl font-bold bg-gradient-to-r from-blue-600 to-indigo-700 bg-clip-text text-transparent mb-2">
+        <i class="fas fa-broadcast-tower"></i> HLS Streams Dashboard
+      </h1>
+      <p class="text-gray-600 mt-2">Manage your live Quran audio streams</p>
+    </div>
+    
+    <!-- Navigation & Player Link -->
+    <div class="flex-shrink-0 ml-4 flex items-center gap-3">
+      <a href="/admin-users.html" id="adminUsersLink" class="hidden bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white px-4 py-2 rounded-lg transition-all shadow-md font-medium inline-flex items-center gap-2">
+        <i class="fas fa-users-cog"></i>
+        <span class="hidden sm:inline">Manage Users</span>
+      </a>
+      
+      <a href="/universal-streamer.html" class="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white px-4 py-2 rounded-lg transition-all shadow-md font-medium inline-flex items-center gap-2">
+        <i class="fas fa-globe"></i>
+        <span class="hidden sm:inline">Universal Streamer</span>
+      </a>
+      
+      <a href="/player.html" target="_blank" class="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white px-4 py-2 rounded-lg transition-all shadow-md font-medium inline-flex items-center gap-2">
+        <i class="fas fa-play-circle"></i>
+        <span class="hidden sm:inline">Play Streams</span>
+      </a>
+      
+      <div id="loginStatus" class="hidden">
+        <span id="userRole" class="text-sm font-semibold text-blue-600 bg-blue-50 px-3 py-1 rounded-full"></span>
+        <button onclick="logout()" class="ml-2 text-red-600 hover:text-red-800 font-medium text-sm">
+          <i class="fas fa-sign-out-alt mr-1"></i>Logout
+        </button>
+      </div>
+      <button id="loginBtn" onclick="window.location.href='/login.html'" class="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-4 py-2 rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all shadow-md font-medium">
+        <i class="fas fa-sign-in-alt mr-2"></i>Login
+      </button>
+    </div>
+  </div>
+
+  <!-- Error Container -->
+  <div id="errorContainer" class="hidden fixed top-4 right-4 z-50 max-w-md animate-fade-in-down">
+    <div class="bg-red-200 text-red-800 border-l-4 border-red-500 px-4 py-3 rounded shadow-lg">
+      <strong class="font-semibold"><i class="fas fa-exclamation-triangle mr-2"></i>Error:</strong>
+      <span id="errorText" class="ml-2"></span>
+    </div>
+  </div>
+
+  <!-- Upload Section (Admin Only) -->
+  <div id="uploadSection" class="bg-white shadow-xl rounded-2xl p-6 mb-6 border border-gray-100 hidden">
+    <h2 class="text-2xl font-bold mb-4 text-gray-800 flex items-center">
+      <i class="fas fa-cloud-upload-alt text-blue-600 mr-2"></i>
+      Upload New Stream
+    </h2>
+    <form id="uploadForm" class="space-y-4">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="md:col-span-1">
+          <label for="streamName" class="block text-sm font-medium text-gray-700 mb-1">
+            Stream Name
+          </label>
+          <input type="text" id="streamName" name="name" placeholder="e.g., surah_yasin"
+            class="w-full border-2 border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 p-3 rounded-lg transition-all outline-none"
+            required>
+        </div>
+        <div class="md:col-span-2">
+          <label for="audioFile" class="block text-sm font-medium text-gray-700 mb-1">
+            Audio File (MP3)
+          </label>
+          <input type="file" id="audioFile" name="audio" accept=".mp3"
+            class="w-full border-2 border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 p-3 rounded-lg transition-all outline-none file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+            required>
+        </div>
+      </div>
+      <div class="flex justify-end">
+        <button type="submit" class="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-8 py-3 rounded-lg hover:from-blue-700 hover:to-indigo-700 transform hover:scale-105 transition-all shadow-lg hover:shadow-xl font-semibold">
+          <i class="fas fa-upload mr-2"></i>Upload & Start Stream
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Bulk Actions Section (Admin Only) -->
+  <div id="bulkActions" class="bg-white shadow-xl rounded-2xl p-5 mb-6 border border-gray-100 hidden">
+    <div class="flex flex-col md:flex-row items-center justify-between gap-4">
+      <div class="flex items-center gap-3">
+        <input type="checkbox" id="selectAll" class="w-5 h-5 text-blue-600 rounded focus:ring-blue-500 border-2 border-gray-300">
+        <label for="selectAll" class="font-semibold text-gray-700 cursor-pointer select-none">
+          Select All
+        </label>
+        <span id="selectedCount" class="text-sm text-gray-500 hidden">(<span id="count">0</span> selected)</span>
+      </div>
+      <div class="flex items-center gap-3 flex-wrap">
+        <span class="font-semibold text-gray-700">Bulk Action:</span>
+        <select id="bulkActionSelect" class="border-2 border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 p-2 rounded-lg outline-none cursor-pointer">
+          <option value="">Choose action...</option>
+          <option value="start"><i class="fas fa-play"></i> Start Selected</option>
+          <option value="stop"><i class="fas fa-pause"></i> Stop Selected</option>
+          <option value="delete"><i class="fas fa-trash"></i> Delete Selected</option>
+        </select>
+        <button id="applyBulkAction" class="bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-6 py-2 rounded-lg hover:from-indigo-700 hover:to-purple-700 transition-all shadow-md hover:shadow-lg font-semibold btn-action">
+          <i class="fas fa-cog mr-2"></i>Apply
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Streams List Section -->
+  <div class="bg-white shadow-xl rounded-2xl p-6 border border-gray-100">
+    <h2 class="text-2xl font-bold mb-6 text-gray-800 flex items-center">
+      <i class="fas fa-list-ul text-indigo-600 mr-2"></i>
+      Active Streams
+      <span id="streamCount" class="ml-3 bg-blue-100 text-blue-800 text-sm font-semibold px-3 py-1 rounded-full">0</span>
+    </h2>
+    <ul id="list" class="space-y-4"></ul>
+  </div>
+</div>
+
+<!-- Login Modal -->
+<div id="loginModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+  <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 transform transition-all scale-100">
+    <div class="flex justify-between items-center mb-6">
+      <h3 class="text-2xl font-bold text-gray-800">
+        <i class="fas fa-sign-in-alt text-blue-600 mr-2"></i>Login
+      </h3>
+      <button onclick="hideLoginModal()" class="text-gray-400 hover:text-gray-600">
+        <i class="fas fa-times text-xl"></i>
+      </button>
+    </div>
+    
+    <form id="loginForm" class="space-y-4">
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2">Username</label>
+        <input type="text" id="loginUsername" placeholder="Enter username"
+          class="w-full border-2 border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 p-3 rounded-lg outline-none"
+          required>
+      </div>
+      
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2">Password</label>
+        <input type="password" id="loginPassword" placeholder="Enter password"
+          class="w-full border-2 border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 p-3 rounded-lg outline-none"
+          required>
+      </div>
+      
+      <div class="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-blue-800">
+        <strong>Demo Accounts:</strong><br>
+        Admin: admin / @!JKF3eWd12<br>
+        User: Create via registration
+      </div>
+      
+      <button type="submit" class="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-6 py-3 rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all shadow-lg hover:shadow-xl font-semibold">
+        <i class="fas fa-sign-in-alt mr-2"></i>Login
+      </button>
+    </form>
+  </div>
+</div>
+
+<script src="client.js"></script>
+
+<!-- Animation CSS -->
+<style>
+@keyframes fadeInDown {
+  from {
+    opacity: 0;
+    transform: translate3d(0, -20px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+.animate-fade-in-down {
+  animation: fadeInDown 0.3s ease-out;
+}
+</style>
+</body>
+</html>

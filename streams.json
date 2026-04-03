@@ -1,1 +1,9 @@
-[]
+[
+  {
+    "name": "تلاوة_القرآن",
+    "filePath": "D:\\github\\cloudvia-git\\quran-live-m3u8\\streams\\تلاوة_القرآن\\recitation.m4a",
+    "createdAt": "2026-04-03T21:55:49.730Z",
+    "source": "auto-discovered",
+    "mediaType": "audio"
+  }
+]

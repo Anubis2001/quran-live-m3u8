@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Register - HLS Streaming Server</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
+</head>
+<body class="bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 min-h-screen flex items-center justify-center p-4">
+
+<div class="max-w-md w-full">
+  <!-- Logo/Header -->
+  <div class="text-center mb-8">
+    <div class="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-r from-green-600 to-emerald-600 rounded-full mb-4 shadow-lg">
+      <i class="fas fa-user-plus text-white text-3xl"></i>
+    </div>
+    <h1 class="text-4xl font-bold bg-gradient-to-r from-green-600 to-emerald-700 bg-clip-text text-transparent mb-2">
+      Create Account
+    </h1>
+    <p class="text-gray-600">Join the HLS Streaming platform</p>
+  </div>
+
+  <!-- Registration Card -->
+  <div class="bg-white shadow-2xl rounded-2xl p-8 border border-gray-100">
+    <h2 class="text-2xl font-bold mb-6 text-gray-800 flex items-center">
+      <i class="fas fa-user-plus text-green-600 mr-2"></i>
+      Register
+    </h2>
+
+    <!-- Error Message -->
+    <div id="errorMessage" class="hidden mb-4 bg-red-100 border-l-4 border-red-500 text-red-800 px-4 py-3 rounded">
+      <strong class="font-semibold"><i class="fas fa-exclamation-triangle mr-2"></i>Error:</strong>
+      <span id="errorText"></span>
+    </div>
+
+    <form id="registerForm" class="space-y-5">
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2">Username *</label>
+        <div class="relative">
+          <i class="fas fa-user absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+          <input type="text" id="username" placeholder="Choose a username (3-30 characters)"
+            class="w-full pl-10 pr-4 py-3 border-2 border-gray-300 focus:border-green-500 focus:ring-2 focus:ring-green-200 rounded-lg transition-all outline-none"
+            required pattern="[a-zA-Z0-9_]{3,30}" autocomplete="username">
+        </div>
+        <p class="text-xs text-gray-500 mt-1">Only letters, numbers, and underscores allowed</p>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2">Email</label>
+        <div class="relative">
+          <i class="fas fa-envelope absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+          <input type="email" id="email" placeholder="your.email@example.com"
+            class="w-full pl-10 pr-4 py-3 border-2 border-gray-300 focus:border-green-500 focus:ring-2 focus:ring-green-200 rounded-lg transition-all outline-none"
+            autocomplete="email">
+        </div>
+        <p class="text-xs text-gray-500 mt-1">Optional but recommended for password recovery</p>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2">Password *</label>
+        <div class="relative">
+          <i class="fas fa-lock absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+          <input type="password" id="password" placeholder="Create a strong password"
+            class="w-full pl-10 pr-4 py-3 border-2 border-gray-300 focus:border-green-500 focus:ring-2 focus:ring-green-200 rounded-lg transition-all outline-none"
+            required minlength="8" autocomplete="new-password">
+        </div>
+        <p class="text-xs text-gray-500 mt-1">Minimum 8 characters</p>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2">Confirm Password *</label>
+        <div class="relative">
+          <i class="fas fa-lock absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+          <input type="password" id="confirmPassword" placeholder="Re-enter your password"
+            class="w-full pl-10 pr-4 py-3 border-2 border-gray-300 focus:border-green-500 focus:ring-2 focus:ring-green-200 rounded-lg transition-all outline-none"
+            required minlength="8" autocomplete="new-password">
+        </div>
+      </div>
+
+      <button type="submit" id="registerBtn" class="w-full bg-gradient-to-r from-green-600 to-emerald-600 text-white px-6 py-3 rounded-lg hover:from-green-700 hover:to-emerald-700 transition-all shadow-lg hover:shadow-xl font-semibold disabled:opacity-50 disabled:cursor-not-allowed">
+        <i class="fas fa-user-plus mr-2"></i>
+        <span id="btnText">Create Account</span>
+        <i id="btnSpinner" class="fas fa-spinner fa-spin hidden ml-2"></i>
+      </button>
+    </form>
+
+    <!-- Divider -->
+    <div class="relative my-6">
+      <div class="absolute inset-0 flex items-center">
+        <div class="w-full border-t border-gray-300"></div>
+      </div>
+      <div class="relative flex justify-center text-sm">
+        <span class="px-2 bg-white text-gray-500">Or</span>
+      </div>
+    </div>
+
+    <!-- Login Link -->
+    <div class="text-center">
+      <p class="text-sm text-gray-600">
+        Already have an account?
+        <a href="/login.html" class="font-medium text-green-600 hover:text-green-800">
+          Sign in here
+        </a>
+      </p>
+    </div>
+  </div>
+
+  <!-- Info Footer -->
+  <div class="mt-6 text-center text-sm text-gray-500">
+    <p>All new accounts are created with user privileges by default</p>
+  </div>
+</div>
+
+<script>
+  // Handle registration
+  document.getElementById('registerForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const username = document.getElementById('username').value.trim();
+    const email = document.getElementById('email').value.trim();
+    const password = document.getElementById('password').value;
+    const confirmPassword = document.getElementById('confirmPassword').value;
+    const registerBtn = document.getElementById('registerBtn');
+    const btnText = document.getElementById('btnText');
+    const btnSpinner = document.getElementById('btnSpinner');
+    
+    // Validate passwords match
+    if (password !== confirmPassword) {
+      showError('Passwords do not match');
+      return;
+    }
+    
+    // Validate username format
+    if (!/^[a-zA-Z0-9_]{3,30}$/.test(username)) {
+      showError('Username must be 3-30 characters long and contain only letters, numbers, and underscores');
+      return;
+    }
+    
+    // Disable button and show spinner
+    registerBtn.disabled = true;
+    btnText.textContent = 'Creating account...';
+    btnSpinner.classList.remove('hidden');
+    
+    hideMessages();
+    
+    try {
+      const response = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, email, password })
+      });
+      
+      const data = await response.json();
+      
+      if (response.ok && data.success) {
+        showSuccess('Account created successfully! Redirecting to login...');
+        
+        setTimeout(() => {
+          window.location.href = '/login.html';
+        }, 2000);
+      } else {
+        showError(data.error || 'Registration failed');
+      }
+    } catch (err) {
+      console.error('Registration error:', err);
+      showError('Network error. Please try again.');
+    } finally {
+      registerBtn.disabled = false;
+      btnText.textContent = 'Create Account';
+      btnSpinner.classList.add('hidden');
+    }
+  });
+
+  function showError(message) {
+    document.getElementById('errorText').textContent = message;
+    document.getElementById('errorMessage').classList.remove('hidden');
+  }
+
+  function showSuccess(message) {
+    document.getElementById('successText').textContent = message;
+    document.getElementById('successMessage').classList.remove('hidden');
+  }
+
+  function hideMessages() {
+    document.getElementById('errorMessage').classList.add('hidden');
+    document.getElementById('successMessage').classList.add('hidden');
+  }
+</script>
+
+</body>
+</html>
