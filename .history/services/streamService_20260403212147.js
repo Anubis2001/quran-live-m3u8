@@ -172,22 +172,8 @@ function startStream(name, filePath) {
   const ffmpegProcess = spawn('ffmpeg', ffmpegArgs, {
     detached: true,              // Run in background (survives parent exit)
     stdio: ['ignore', 'pipe', 'pipe'],  // stdin, stdout, stderr
-    cwd: dir,                    // Set working directory to output folder
-    windowsHide: true            // Hide console window on Windows
+    cwd: dir                     // Set working directory to output folder
   });
-  
-  // CRITICAL: On Unix systems, set the process group
-  // This allows us to kill all child processes together
-  if (ffmpegProcess.pid && process.platform !== 'win32') {
-    try {
-      // Make this process the leader of a new process group
-      process.kill(ffmpegProcess.pid, 0); // Verify process exists
-      // The detached option already creates a new session on Unix
-      // We just need to track the PID for group operations
-    } catch (e) {
-      console.error(`Warning: Could not verify process group setup:`, e.message);
-    }
-  }
   
   console.log(`✅ Stream '${name}' started successfully (PID: ${ffmpegProcess.pid})`);
   
@@ -631,72 +617,26 @@ async function deleteStream(name) {
     // Always stop the stream first to kill FFmpeg process
     stopStream(name);
     
-    // Wait longer to ensure process is completely killed before deleting files
-    // Detached processes may need extra time to fully terminate
+    // Wait a moment to ensure process is killed before deleting files
     setTimeout(() => {
       try {
         const folder = path.join(__dirname, "..", "streams", name);
         console.log(`Deleting folder: ${folder}`);
+        fs.rmSync(folder, { recursive: true, force: true });
         
-        // Verify process is actually dead before deleting
-        const ent = runningStreams[name];
-        if (ent && ent.pid) {
-          try {
-            process.kill(ent.pid, 0);
-            // Process still alive - wait more and force kill again
-            console.log(`Process ${ent.pid} still alive during deletion, force killing...`);
-            try {
-              process.kill(-ent.pid, 'SIGKILL');
-            } catch (e) {
-              try {
-                if (ent.process) ent.process.kill('SIGKILL');
-              } catch (e2) {
-                console.error(`Failed to force kill process:`, e2.message);
-              }
-            }
-            // Wait additional time
-            setTimeout(() => {
-              performFileDeletion(folder, name, resolve, reject);
-            }, 1000);
-            return;
-          } catch (e) {
-            // Process is dead, proceed with deletion
-            console.log(`Process ${ent.pid} confirmed dead, proceeding with file deletion`);
-          }
-        }
+        // Remove from metadata
+        const streamsMetadata = loadStreamsMetadata();
+        const filteredMetadata = streamsMetadata.filter(s => s.name !== name);
+        saveStreamsMetadata(filteredMetadata);
         
-        performFileDeletion(folder, name, resolve, reject);
+        console.log(`Stream ${name} deleted successfully`);
+        resolve();
       } catch (err) {
         console.error(`Error deleting stream ${name}:`, err);
         reject(err);
       }
-    }, 2000); // Wait 2 seconds to ensure process is fully terminated
+    }, 1000); // Wait 1 second to ensure process is fully terminated
   });
-}
-
-/**
- * Helper function to perform actual file deletion
- */
-function performFileDeletion(folder, name, resolve, reject) {
-  try {
-    if (fs.existsSync(folder)) {
-      fs.rmSync(folder, { recursive: true, force: true });
-      console.log(`✓ Deleted folder: ${folder}`);
-    } else {
-      console.log(`Folder does not exist (already deleted): ${folder}`);
-    }
-    
-    // Remove from metadata
-    const streamsMetadata = loadStreamsMetadata();
-    const filteredMetadata = streamsMetadata.filter(s => s.name !== name);
-    saveStreamsMetadata(filteredMetadata);
-    
-    console.log(`✓ Stream ${name} deleted successfully`);
-    resolve();
-  } catch (err) {
-    console.error(`Error during file deletion for stream ${name}:`, err);
-    reject(err);
-  }
 }
 
 /**

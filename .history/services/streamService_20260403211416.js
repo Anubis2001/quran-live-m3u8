@@ -6,9 +6,6 @@ const { logger } = require("../utils/logger");
 // In-memory storage for running streams
 const runningStreams = {};
 
-// Track if shutdown is in progress
-let isShuttingDown = false;
-
 /**
  * Get all running streams
  */
@@ -94,15 +91,18 @@ function saveStreamsMetadata(streamsArray) {
 function startStream(name, filePath) {
   console.log(`\n========== STARTING STREAM: ${name} ==========`);
   logger.info(`Starting stream: ${name}`);
+  logger.verbose(`Input file: ${filePath}`);
   
   // First, ensure any existing process is completely stopped
   const existingEntry = runningStreams[name];
   if (existingEntry) {
+    console.log(`Cleaning up existing process for ${name} before starting new one`);
     stopStreamSync(name);
     delete runningStreams[name];
   }
   
   const dir = path.dirname(filePath);
+  console.log(`Output directory: ${dir}`);
   
   // Verify input file exists
   if (!fs.existsSync(filePath)) {
@@ -110,15 +110,22 @@ function startStream(name, filePath) {
     return;
   }
   
+  console.log(`✓ Input file exists: ${filePath}`);
+  
   // CRITICAL: Use absolute paths for outputs
   const outputPlaylist = path.join(dir, 'stream.m3u8');
   const outputSegment = path.join(dir, 'seg_%03d.ts');
+  
+  console.log(`\nExpected outputs:`);
+  console.log(`  Playlist: ${outputPlaylist}`);
+  console.log(`  Segments: ${outputSegment}`);
   
   // Check write permissions on output directory
   try {
     const testFile = path.join(dir, '.write_test');
     fs.writeFileSync(testFile, 'test');
     fs.unlinkSync(testFile);
+    console.log(`✓ Write permissions OK`);
   } catch (writeErr) {
     console.error(`❌ CANNOT WRITE to output directory`);
     console.error(`Error:`, writeErr.message);
@@ -126,8 +133,10 @@ function startStream(name, filePath) {
   }
   
   // CRITICAL: Verify FFmpeg is installed and accessible
+  console.log(`\n🔍 Checking FFmpeg installation...`);
   try {
     const versionOutput = execSync('ffmpeg -version', { encoding: 'utf8' }).split('\n')[0];
+    console.log(`✓ FFmpeg found: ${versionOutput}`);
   } catch (ffmpegErr) {
     console.error(`❌ FFMPEG NOT FOUND OR NOT EXECUTABLE!`);
     console.error(`\nSOLUTION: Install FFmpeg or add it to PATH`);
@@ -137,8 +146,19 @@ function startStream(name, filePath) {
     return;
   }
   
+  // List current directory contents BEFORE starting FFmpeg
+  console.log(`\n📁 Directory state BEFORE FFmpeg:`);
+  try {
+    const beforeFiles = fs.readdirSync(dir);
+    console.log(`Files in ${dir}:`, beforeFiles.length ? beforeFiles : '(empty)');
+  } catch (listErr) {
+    console.error(`Cannot list directory:`, listErr.message);
+  }
+  
   // ALTERNATIVE APPROACH: Use spawn() with detached mode for better control
-  console.log(`\n🚀 Starting FFmpeg process...`);
+  // This method provides more reliable process management on Linux
+  console.log(`\n🚀 STARTING FFMPEG WITH SPAWN (DETACHED MODE):`);
+  console.log(`This approach provides better process control and error handling\n`);
   
   // Build FFmpeg arguments array with optimizations for large files
   const ffmpegArgs = [
@@ -158,11 +178,15 @@ function startStream(name, filePath) {
     outputPlaylist                            // Output playlist
   ];
   
+  console.log(`FFmpeg command configured`);
+  console.log(`Working directory set\n`);
+  
   // Create log file stream for capturing FFmpeg output
   const logPath = path.join(dir, 'ffmpeg.log');
   let logStream;
   try {
     logStream = fs.createWriteStream(logPath, { flags: 'w' });
+    console.log(`✓ Log file created: ${logPath}`);
   } catch (logErr) {
     console.error(`⚠ Could not create log file:`, logErr.message);
     logStream = null;
@@ -172,31 +196,21 @@ function startStream(name, filePath) {
   const ffmpegProcess = spawn('ffmpeg', ffmpegArgs, {
     detached: true,              // Run in background (survives parent exit)
     stdio: ['ignore', 'pipe', 'pipe'],  // stdin, stdout, stderr
-    cwd: dir,                    // Set working directory to output folder
-    windowsHide: true            // Hide console window on Windows
+    cwd: dir                     // Set working directory to output folder
   });
   
-  // CRITICAL: On Unix systems, set the process group
-  // This allows us to kill all child processes together
-  if (ffmpegProcess.pid && process.platform !== 'win32') {
-    try {
-      // Make this process the leader of a new process group
-      process.kill(ffmpegProcess.pid, 0); // Verify process exists
-      // The detached option already creates a new session on Unix
-      // We just need to track the PID for group operations
-    } catch (e) {
-      console.error(`Warning: Could not verify process group setup:`, e.message);
-    }
-  }
+  console.log(`✅ FFmpeg spawned with PID: ${ffmpegProcess.pid}`);
+  console.log(`Stream tracking info:`);
+  console.log(`  Stream name: ${name}`);
+  console.log(`  Process type: spawned (detached)\n`);
   
-  console.log(`✅ Stream '${name}' started successfully (PID: ${ffmpegProcess.pid})`);
-  
-  // CRITICAL: Capture FFmpeg stdout and stderr for logging (errors only)
+  // CRITICAL: Capture FFmpeg stdout and stderr for logging
   if (ffmpegProcess.stdout) {
     ffmpegProcess.stdout.on('data', (data) => {
-      // Don't log stdout - too verbose, only write to log file
+      const message = data.toString();
+      console.log(`[FFmpeg] ${message.trim()}`);
       if (logStream) {
-        logStream.write(`[STDOUT] ${new Date().toISOString()}: ${data.toString()}\n`);
+        logStream.write(`[STDOUT] ${new Date().toISOString()}: ${message}\n`);
       }
     });
   }
@@ -204,14 +218,14 @@ function startStream(name, filePath) {
   if (ffmpegProcess.stderr) {
     ffmpegProcess.stderr.on('data', (data) => {
       const message = data.toString();
-      // Only log errors to console, everything goes to log file
+      // FFmpeg outputs progress to stderr, so log it appropriately
       if (message.toLowerCase().includes('error') || message.toLowerCase().includes('fatal')) {
         console.error(`[FFmpeg ERROR] ${message.trim()}`);
         if (logStream) {
           logStream.write(`[ERROR] ${new Date().toISOString()}: ${message}\n`);
         }
       } else {
-        // Regular progress information - only to log file
+        // Regular progress information
         if (logStream) {
           logStream.write(`[STDERR] ${new Date().toISOString()}: ${message}\n`);
         }
@@ -372,17 +386,21 @@ function startStream(name, filePath) {
     healthCheckInterval: healthCheckInterval
   };
   
-  // Monitor file creation with minimal logging (only errors)
+  // Monitor file creation with aggressive checks
   console.log(`⏱️ Monitoring file creation...`);
   
   const checkFileExists = (filePath, description, delayMs) => {
     setTimeout(() => {
       const exists = fs.existsSync(filePath);
-      // Only log if file wasn't created (error condition)
-      if (!exists) {
-        console.warn(`⚠️ ${description} - File not created: ${filePath}`);
+      console.log(`${description} ${exists ? '✓ CREATED' : '❌ NOT CREATED'}: ${filePath}`);
+      
+      if (exists) {
+        const stats = fs.statSync(filePath);
+        console.log(`  ✓ File created (${stats.size} bytes)`);
+      } else {
+        // File doesn't exist - generic message only
+        console.log(`  ℹ️ Waiting for file creation...`);
       }
-      // Don't log successful file creation (too verbose)
     }, delayMs);
   };
   
@@ -394,19 +412,33 @@ function startStream(name, filePath) {
   
   // Show log file contents after 8 seconds (minimal output)
   setTimeout(() => {
+    console.log(`\n📋 Checking FFmpeg status...`);
     try {
       if (fs.existsSync(logPath)) {
         const logContent = fs.readFileSync(logPath, 'utf8');
         
-        // Only log if there are errors
+        // Check for errors in log
         if (logContent.toLowerCase().includes('error') || logContent.toLowerCase().includes('invalid')) {
-          console.error(`\n⚠️ ERRORS FOUND IN LOG! Check log file: ${logPath}`);
+          console.error(`\n⚠️ ERRORS FOUND IN LOG! Check log file for details.`);
+        } else {
+          console.log(`\n✓ FFmpeg running normally`);
         }
-        // Don't log success message (too verbose)
+      } else {
+        console.error(`❌ Log file not created`);
       }
     } catch (logErr) {
       console.error(`Error reading log:`, logErr.message);
     }
+    
+    // Success check only
+    try {
+      const finalFiles = fs.readdirSync(dir);
+      if (finalFiles.some(f => f.endsWith('.m3u8'))) {
+        console.log(`\n🎉 SUCCESS! HLS files created!`);
+      } else {
+        console.error(`\n❌ NO M3U8 FILE CREATED! Check logs for details.`);
+      }
+    } catch (e) {}
   }, 8000);
 }
 
@@ -427,59 +459,26 @@ function stopStream(name) {
     if (ent.process && !ent.process.killed) {
       console.log(`Stopping spawned FFmpeg process ${name} (PID: ${ent.pid})`);
       
-      // Clear monitoring intervals FIRST to prevent further operations
+      // Clear monitoring intervals
       if (ent.watchdogInterval) {
         clearInterval(ent.watchdogInterval);
-        ent.watchdogInterval = null;
         console.log(`✓ Stopped watchdog timer`);
       }
       if (ent.healthCheckInterval) {
         clearInterval(ent.healthCheckInterval);
-        ent.healthCheckInterval = null;
         console.log(`✓ Stopped health check timer`);
       }
       
-      // Kill the entire process group (not just the parent process)
-      // This ensures all child processes (ffmpeg workers) are also killed
-      try {
-        // Send signal to entire process group (negative PID)
-        process.kill(-ent.pid, 'SIGTERM');
-        console.log(`Sent SIGTERM to process group ${ent.pid}`);
-      } catch (groupKillErr) {
-        // Fallback: kill individual process
-        console.log(`Process group kill failed, killing individual process`);
-        try {
-          ent.process.kill('SIGTERM');
-        } catch (individualKillErr) {
-          console.error(`Error sending SIGTERM:`, individualKillErr.message);
-        }
-      }
+      // Send SIGTERM for graceful shutdown
+      ent.process.kill('SIGTERM');
+      console.log(`Sent SIGTERM to process ${ent.pid}`);
       
       // Force kill after 2 seconds if still running
       setTimeout(() => {
         try {
-          // Check if process is still alive
-          let stillAlive = false;
-          try {
-            process.kill(ent.pid, 0);
-            stillAlive = true;
-          } catch (e) {
-            stillAlive = false;
-          }
-          
-          if (stillAlive || (ent.process && !ent.process.killed)) {
-            console.log(`Process ${ent.pid} still running, sending SIGKILL to process group`);
-            try {
-              // Kill entire process group with SIGKILL
-              process.kill(-ent.pid, 'SIGKILL');
-            } catch (groupKillErr) {
-              // Fallback: kill individual process
-              try {
-                ent.process.kill('SIGKILL');
-              } catch (individualKillErr) {
-                console.error(`Error force killing:`, individualKillErr.message);
-              }
-            }
+          if (ent.process && !ent.process.killed) {
+            console.log(`Process ${ent.pid} still running, sending SIGKILL`);
+            ent.process.kill('SIGKILL');
           }
         } catch (killErr) {
           console.error(`Error force killing process:`, killErr.message);
@@ -631,72 +630,26 @@ async function deleteStream(name) {
     // Always stop the stream first to kill FFmpeg process
     stopStream(name);
     
-    // Wait longer to ensure process is completely killed before deleting files
-    // Detached processes may need extra time to fully terminate
+    // Wait a moment to ensure process is killed before deleting files
     setTimeout(() => {
       try {
         const folder = path.join(__dirname, "..", "streams", name);
         console.log(`Deleting folder: ${folder}`);
+        fs.rmSync(folder, { recursive: true, force: true });
         
-        // Verify process is actually dead before deleting
-        const ent = runningStreams[name];
-        if (ent && ent.pid) {
-          try {
-            process.kill(ent.pid, 0);
-            // Process still alive - wait more and force kill again
-            console.log(`Process ${ent.pid} still alive during deletion, force killing...`);
-            try {
-              process.kill(-ent.pid, 'SIGKILL');
-            } catch (e) {
-              try {
-                if (ent.process) ent.process.kill('SIGKILL');
-              } catch (e2) {
-                console.error(`Failed to force kill process:`, e2.message);
-              }
-            }
-            // Wait additional time
-            setTimeout(() => {
-              performFileDeletion(folder, name, resolve, reject);
-            }, 1000);
-            return;
-          } catch (e) {
-            // Process is dead, proceed with deletion
-            console.log(`Process ${ent.pid} confirmed dead, proceeding with file deletion`);
-          }
-        }
+        // Remove from metadata
+        const streamsMetadata = loadStreamsMetadata();
+        const filteredMetadata = streamsMetadata.filter(s => s.name !== name);
+        saveStreamsMetadata(filteredMetadata);
         
-        performFileDeletion(folder, name, resolve, reject);
+        console.log(`Stream ${name} deleted successfully`);
+        resolve();
       } catch (err) {
         console.error(`Error deleting stream ${name}:`, err);
         reject(err);
       }
-    }, 2000); // Wait 2 seconds to ensure process is fully terminated
+    }, 1000); // Wait 1 second to ensure process is fully terminated
   });
-}
-
-/**
- * Helper function to perform actual file deletion
- */
-function performFileDeletion(folder, name, resolve, reject) {
-  try {
-    if (fs.existsSync(folder)) {
-      fs.rmSync(folder, { recursive: true, force: true });
-      console.log(`✓ Deleted folder: ${folder}`);
-    } else {
-      console.log(`Folder does not exist (already deleted): ${folder}`);
-    }
-    
-    // Remove from metadata
-    const streamsMetadata = loadStreamsMetadata();
-    const filteredMetadata = streamsMetadata.filter(s => s.name !== name);
-    saveStreamsMetadata(filteredMetadata);
-    
-    console.log(`✓ Stream ${name} deleted successfully`);
-    resolve();
-  } catch (err) {
-    console.error(`Error during file deletion for stream ${name}:`, err);
-    reject(err);
-  }
 }
 
 /**
@@ -1012,130 +965,6 @@ async function startYoutubeStream(name, mediaUrl, cookiesPath) {
   });
 }
 
-/**
- * Graceful shutdown - stop all running streams
- */
-function gracefulShutdown(signal) {
-  if (isShuttingDown) {
-    console.log('Shutdown already in progress...');
-    return;
-  }
-  
-  isShuttingDown = true;
-  console.log(`\n${'='.repeat(60)}`);
-  console.log(`${signal} received - Starting graceful shutdown...`);
-  console.log(`${'='.repeat(60)}`);
-  
-  const streamNames = Object.keys(runningStreams);
-  
-  if (streamNames.length === 0) {
-    console.log('No running streams to stop.');
-    process.exit(0);
-    return;
-  }
-  
-  console.log(`Stopping ${streamNames.length} active stream(s)...`);
-  
-  // Stop all streams in parallel
-  const stopPromises = streamNames.map(name => {
-    return new Promise((resolve) => {
-      console.log(`\nStopping stream: ${name}`);
-      const ent = runningStreams[name];
-      
-      if (!ent) {
-        console.log(`Stream ${name} already cleaned up`);
-        resolve();
-        return;
-      }
-      
-      try {
-        // Clear all intervals
-        if (ent.watchdogInterval) {
-          clearInterval(ent.watchdogInterval);
-        }
-        if (ent.healthCheckInterval) {
-          clearInterval(ent.healthCheckInterval);
-        }
-        
-        // Kill process group
-        if (ent.process && !ent.process.killed) {
-          try {
-            process.kill(-ent.pid, 'SIGTERM');
-            console.log(`✓ Sent SIGTERM to process group ${ent.pid}`);
-          } catch (groupErr) {
-            try {
-              ent.process.kill('SIGTERM');
-              console.log(`✓ Sent SIGTERM to individual process ${ent.pid}`);
-            } catch (indErr) {
-              console.error(`✗ Failed to send SIGTERM to ${ent.pid}:`, indErr.message);
-            }
-          }
-          
-          // Force kill after timeout
-          setTimeout(() => {
-            try {
-              process.kill(-ent.pid, 'SIGKILL');
-              console.log(`✓ Force killed process group ${ent.pid}`);
-            } catch (groupErr) {
-              try {
-                ent.process.kill('SIGKILL');
-                console.log(`✓ Force killed individual process ${ent.pid}`);
-              } catch (indErr) {
-                console.error(`✗ Failed to force kill ${ent.pid}:`, indErr.message);
-              }
-            }
-          }, 1500);
-        }
-        
-        delete runningStreams[name];
-        resolve();
-      } catch (err) {
-        console.error(`Error stopping stream ${name}:`, err.message);
-        delete runningStreams[name];
-        resolve();
-      }
-    });
-  });
-  
-  // Wait for all streams to stop, then exit
-  Promise.all(stopPromises).then(() => {
-    console.log(`\n${'='.repeat(60)}`);
-    console.log('All streams stopped successfully.');
-    console.log('Exiting application...');
-    console.log(`${'='.repeat(60)}\n`);
-    
-    // Give a small delay to ensure all cleanup completes
-    setTimeout(() => {
-      process.exit(0);
-    }, 500);
-  }).catch(err => {
-    console.error('Error during shutdown:', err);
-    process.exit(1);
-  });
-}
-
-/**
- * Setup graceful shutdown handlers
- */
-function setupGracefulShutdown() {
-  // Handle various termination signals
-  process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
-  process.on('SIGINT', () => gracefulShutdown('SIGINT'));
-  
-  // Handle uncaught exceptions
-  process.on('uncaughtException', (err) => {
-    console.error('\n❌ Uncaught Exception:', err);
-    gracefulShutdown('UNCAUGHT_EXCEPTION');
-  });
-  
-  process.on('unhandledRejection', (reason, promise) => {
-    console.error('\n❌ Unhandled Rejection at:', promise, 'reason:', reason);
-    gracefulShutdown('UNHANDLED_REJECTION');
-  });
-  
-  console.log('✓ Graceful shutdown handlers registered');
-}
-
 module.exports = {
   getRunningStreams,
   listStreams,
@@ -1146,6 +975,5 @@ module.exports = {
   deleteStream,
   restoreStreams,
   loadStreamsMetadata,
-  saveStreamsMetadata,
-  setupGracefulShutdown
+  saveStreamsMetadata
 };

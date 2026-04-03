@@ -140,8 +140,6 @@ function setupSecurityHardening(app) {
       '.swp',          // Swap files
     ];
     
-    // Exception: Allow .html files to be accessed (they will be redirected to clean URLs by auth.js)
-    
     // Check if path is blocked
     if (blockedPaths.some(blocked => requestedPath.startsWith(blocked))) {
       console.warn(`⚠️ BLOCKED: Access attempt to restricted path: ${requestedPath}`);

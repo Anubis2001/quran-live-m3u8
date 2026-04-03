@@ -176,19 +176,6 @@ function startStream(name, filePath) {
     windowsHide: true            // Hide console window on Windows
   });
   
-  // CRITICAL: On Unix systems, set the process group
-  // This allows us to kill all child processes together
-  if (ffmpegProcess.pid && process.platform !== 'win32') {
-    try {
-      // Make this process the leader of a new process group
-      process.kill(ffmpegProcess.pid, 0); // Verify process exists
-      // The detached option already creates a new session on Unix
-      // We just need to track the PID for group operations
-    } catch (e) {
-      console.error(`Warning: Could not verify process group setup:`, e.message);
-    }
-  }
-  
   console.log(`✅ Stream '${name}' started successfully (PID: ${ffmpegProcess.pid})`);
   
   // CRITICAL: Capture FFmpeg stdout and stderr for logging (errors only)

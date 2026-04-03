@@ -229,7 +229,7 @@
         </div>
         
         <div class="status-box" id="statusBox">
-            <h3>📊 Session Streams</h3>
+            <h3>📊 Current Stream Status</h3>
             <div id="statusContent">Enter a URL and click "Start Stream" to begin</div>
         </div>
     </div>
@@ -269,15 +269,6 @@
                     const authInfo = data.cookiesUsed ? '<br><strong>🍪 Authenticated:</strong> Yes (using server cookies)' : '';
                     const platformInfo = data.platform ? `<br><strong>🎯 Platform:</strong> ${data.platform}` : '';
                     
-                    // Store this stream in session storage (temporary, cleared on refresh)
-                    let sessionStreams = JSON.parse(sessionStorage.getItem('sessionStreams') || '[]');
-                    sessionStreams.push({
-                        name: data.name,
-                        streamUrl: data.streamUrl,
-                        createdAt: new Date().toISOString()
-                    });
-                    sessionStorage.setItem('sessionStreams', JSON.stringify(sessionStreams));
-                    
                     // Show ONLY the newly created stream with its URL
                     document.getElementById('statusContent').innerHTML = `
                         <div class="success">
@@ -285,7 +276,7 @@
                             <strong>Name:</strong> ${data.name}${platformInfo}<br>
                             <strong>Stream URL:</strong> <code>${data.streamUrl}</code>${authInfo}<br><br>
                             <p style="margin-top: 15px; color: #666; font-size: 14px;">
-                                💡 This stream is visible only during this session. It will be cleared after page refresh.
+                                💡 <strong>Note:</strong> This stream is temporary and will not persist after page refresh.
                             </p>
                             <audio controls class="audio-player">
                                 <source src="${data.streamUrl}" type="application/vnd.apple.mpegurl">
@@ -335,17 +326,12 @@
                 });
                 
                 if (response.ok) {
-                    // Remove from session storage
-                    let sessionStreams = JSON.parse(sessionStorage.getItem('sessionStreams') || '[]');
-                    sessionStreams = sessionStreams.filter(s => s.name !== name);
-                    sessionStorage.setItem('sessionStreams', JSON.stringify(sessionStreams));
-                    
                     document.getElementById('statusContent').innerHTML = `
                         <div class="success">
                             <strong>✅ Stream stopped!</strong>
                         </div>
                     `;
-                    displaySessionStreams();
+                    loadStreams();
                 } else {
                     const error = await response.text();
                     throw new Error(error);
@@ -359,36 +345,48 @@
             }
         }
         
-        // Display streams created in current session only
-        function displaySessionStreams() {
-            const sessionStreams = JSON.parse(sessionStorage.getItem('sessionStreams') || '[]');
+        async function loadStreams() {
             const statusContent = document.getElementById('statusContent');
+            statusContent.innerHTML = '<span class="loading"></span> Loading...';
             
-            if (sessionStreams.length === 0) {
-                statusContent.innerHTML = '<p>No streams created in this session. Enter a URL above to start streaming.</p>';
-                return;
-            }
-            
-            let html = '<h4 style="margin-bottom: 15px;">Streams Created This Session:</h4>';
-            sessionStreams.forEach(stream => {
-                html += `
-                    <div class="stream-item">
-                        <strong>${stream.name}</strong><br>
-                        <small>Created: ${new Date(stream.createdAt).toLocaleTimeString()}</small><br>
-                        <code>${stream.streamUrl}</code><br>
-                        <audio controls style="margin-top: 10px; width: 100%;">
-                            <source src="${stream.streamUrl}" type="application/vnd.apple.mpegurl">
-                            Your browser does not support HLS
-                        </audio>
+            try {
+                const response = await fetch(`${SERVER_URL}/api/streams`);
+                const streams = await response.json();
+                
+                if (streams.length === 0) {
+                    statusContent.innerHTML = '<p>No active streams</p>';
+                    return;
+                }
+                
+                let html = '';
+                streams.forEach(stream => {
+                    const statusColor = stream.status === 'running' ? '#22c55e' : '#ef4444';
+                    html += `
+                        <div class="stream-item">
+                            <strong>${stream.name}</strong><br>
+                            <span style="color: ${statusColor}">● ${stream.status.toUpperCase()}</span><br>
+                            <small>Created: ${new Date(stream.createdAt).toLocaleString()}</small><br>
+                            <code>${stream.url}</code><br>
+                            <audio controls style="margin-top: 10px; width: 100%;">
+                                <source src="${stream.url}" type="application/vnd.apple.mpegurl">
+                                Your browser does not support HLS
+                            </audio>
+                        </div>
+                    `;
+                });
+                
+                statusContent.innerHTML = html;
+            } catch (error) {
+                statusContent.innerHTML = `
+                    <div class="error">
+                        <strong>❌ Error loading streams:</strong> ${error.message}
                     </div>
                 `;
-            });
-            
-            statusContent.innerHTML = html;
+            }
         }
         
-        // Initialize on page load - show empty state (no streams from previous sessions)
-        displaySessionStreams();
+        // Load streams on page load
+        loadStreams();
     </script>
 </body>
 </html>

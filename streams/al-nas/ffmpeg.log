@@ -1,0 +1,330 @@
+[STDERR] 2026-04-03T19:12:36.123Z: ffmpeg version N-123627-g5dfe661f03-20260327 Copyright (c) 2000-2026 the FFmpeg developers
+  built with gcc 15.2.0 (crosstool-NG 1.28.0.23_185f348)
+
+[STDERR] 2026-04-03T19:12:36.124Z:   configuration: --prefix=/ffbuild/prefix --pkg-config-flags=--static --pkg-config=pkg-config --cross-prefix=x86_64-w64-mingw32- --arch=x86_64 --target-os=mingw32 --enable-gpl --enable-version3 --disable-debug --enable-shared --disable-static --disable-w32threads --enable-pthreads --enable-iconv --enable-zlib --enable-libxml2 --enable-libvmaf --enable-fontconfig --enable-libharfbuzz --enable-libfreetype --enable-libfribidi --enable-vulkan --enable-libshaderc --enable-libvorbis --disable-libxcb --disable-xlib --disable-libpulse --enable-opencl --enable-gmp --enable-lzma --enable-liblcevc-dec --enable-amf --enable-libaom --enable-libaribb24 --enable-avisynth --enable-chromaprint --enable-libdav1d --enable-libdavs2 --enable-libdvdread --enable-libdvdnav --disable-libfdk-aac --enable-ffnvcodec --enable-cuda-llvm --enable-frei0r --enable-libgme --enable-libkvazaar --enable-libaribcaption --enable-libass --enable-libbluray --enable-libjxl --enable-libmp3lame --enable-libopus --enable-libplacebo --enable-librist --enable-libssh --enable-libtheora --enable-libvpx --enable-libwebp --enable-libzmq --enable-lv2 --enable-libvpl --enable-openal --enable-liboapv --enable-libopencore-amrnb --enable-libopencore-amrwb --enable-libopenh264 --enable-libopenjpeg --enable-libopenmpt --enable-librav1e --enable-librubberband --enable-schannel --enable-sdl2 --enable-libsnappy --enable-libsoxr --enable-libsrt --enable-libsvtav1 --enable-libtwolame --enable-libuavs3d --disable-libdrm --enable-vaapi --enable-libvidstab --enable-libvvenc --enable-whisper --enable-libx264 --enable-libx265 --enable-libxavs2 --enable-libxvid --enable-libzimg --enable-libzvbi --extra-cflags=-DLIBTWOLAME_STATIC --extra-cxxflags= --extra-libs=-lgomp --extra-ldflags=-pthread --extra-ldexeflags= --cc=x86_64-w64-mingw32-gcc --cxx=x86_64-w64-mingw32-g++ --ar=x86_64-w64-mingw32-gcc-ar --ranlib=x86_64-w64-mingw32-gcc-ranlib --nm=x86_64-w64-mingw32-gcc-nm --extra-version=20260327
+  libavutil      60. 29.100 / 60. 29.100
+  libavcodec     62. 29.101 / 62. 29.101
+  libavformat    62. 13.101 / 62. 13.101
+  libavdevice    62.  4.100 / 62.  4.100
+  libavfilter    11. 15.101 / 11. 15.101
+  libswscale      9.  7.100 /  9.  7.100
+  libswresample   6.  4.100 /  6.  4.100
+
+[STDERR] 2026-04-03T19:12:36.143Z: [in#0/mp3 @ 00000190d8190b00] Estimating duration from bitrate, this may be inaccurate
+
+[STDERR] 2026-04-03T19:12:36.144Z: Input #0, mp3, from 'D:\github\cloudvia-git\quran-live-m3u8\streams\al-nas\114.mp3':
+  Metadata:
+    album           : مصحف الشيخ ياسر الدوسري
+    artist          : ياسر الدوسري
+    comment         : jam3-fawaed.blogspot.com
+    genre           : قرآن كريم
+    title           : 114-An-Nas
+    date            : 2017
+  Duration: 00:00:35.72, start: 0.000000, bitrate: 161 kb/s
+  Stream #0:0: Audio: mp3 (mp3float), 44100 Hz, stereo, fltp, 128 kb/s
+  Stream #0:1: Video: png, rgba(pc, gbr/bt709/unknown), 408x396 [SAR 11811:11811 DAR 34:33], 90k tbr, 90k tbn (attached pic)
+    Metadata:
+      comment         : Cover (front)
+
+[STDERR] 2026-04-03T19:12:36.144Z: Stream mapping:
+  Stream #0:0 -> #0:0 (copy)
+
+[STDERR] 2026-04-03T19:12:36.144Z: Output #0, hls, to 'D:\github\cloudvia-git\quran-live-m3u8\streams\al-nas\stream.m3u8':
+  Metadata:
+    album           : مصحف الشيخ ياسر الدوسري
+    artist          : ياسر الدوسري
+    comment         : jam3-fawaed.blogspot.com
+    genre           : قرآن كريم
+    title           : 114-An-Nas
+    date            : 2017
+    encoder         : Lavf62.13.101
+  Stream #0:0: Audio: mp3, 44100 Hz, stereo, fltp, 128 kb/s
+
+[STDERR] 2026-04-03T19:12:36.144Z: Press [q] to stop, [?] for help
+
+[STDERR] 2026-04-03T19:12:36.658Z: size=N/A time=00:00:01.01 bitrate=N/A speed=1.98x elapsed=0:00:00.51    
+[STDERR] 2026-04-03T19:12:37.170Z: size=N/A time=00:00:01.54 bitrate=N/A speed= 1.5x elapsed=0:00:01.02    
+[STDERR] 2026-04-03T19:12:37.685Z: size=N/A time=00:00:02.03 bitrate=N/A speed=1.32x elapsed=0:00:01.54    
+[STDERR] 2026-04-03T19:12:38.211Z: size=N/A time=00:00:02.56 bitrate=N/A speed=1.24x elapsed=0:00:02.06    
+[STDERR] 2026-04-03T19:12:38.662Z: [hls @ 00000190d8194b00] Opening 'D:\github\cloudvia-git\quran-live-m3u8\streams\al-nas\seg_000.ts' for writing
+
+[STDERR] 2026-04-03T19:12:38.663Z: [hls @ 00000190d8194b00] Opening 'D:\github\cloudvia-git\quran-live-m3u8\streams\al-nas\stream.m3u8.tmp' for writing
+
+[STDERR] 2026-04-03T19:12:38.724Z: size=N/A time=00:00:03.08 bitrate=N/A speed=1.19x elapsed=0:00:02.58    
+[STDERR] 2026-04-03T19:12:38.725Z: 
+[STDERR] 2026-04-03T19:12:39.239Z: size=N/A time=00:00:03.60 bitrate=N/A speed=1.16x elapsed=0:00:03.09    
+[STDERR] 2026-04-03T19:12:39.753Z: size=N/A time=00:00:04.10 bitrate=N/A speed=1.14x elapsed=0:00:03.60    
+[STDERR] 2026-04-03T19:12:40.267Z: size=N/A time=00:00:04.62 bitrate=N/A speed=1.12x elapsed=0:00:04.12    
+[STDERR] 2026-04-03T19:12:40.781Z: size=N/A time=00:00:05.14 bitrate=N/A speed=1.11x elapsed=0:00:04.63    
+[STDERR] 2026-04-03T19:12:41.293Z: size=N/A time=00:00:05.64 bitrate=N/A speed= 1.1x elapsed=0:00:05.14    
+[STDERR] 2026-04-03T19:12:41.666Z: [hls @ 00000190d8194b00] Opening 'D:\github\cloudvia-git\quran-live-m3u8\streams\al-nas\seg_001.ts' for writing
+
+[STDERR] 2026-04-03T19:12:41.667Z: [hls @ 00000190d8194b00] Opening 'D:\github\cloudvia-git\quran-live-m3u8\streams\al-nas\stream.m3u8.tmp' for writing
+
+[STDERR] 2026-04-03T19:12:41.820Z: size=N/A time=00:00:06.19 bitrate=N/A speed=1.09x elapsed=0:00:05.67    
+[STDERR] 2026-04-03T19:12:42.336Z: size=N/A time=00:00:06.68 bitrate=N/A speed=1.08x elapsed=0:00:06.19    
+[STDERR] 2026-04-03T19:12:42.847Z: size=N/A time=00:00:07.20 bitrate=N/A speed=1.08x elapsed=0:00:06.70    
+[STDERR] 2026-04-03T19:12:43.359Z: size=N/A time=00:00:07.70 bitrate=N/A speed=1.07x elapsed=0:00:07.21    
+[STDERR] 2026-04-03T19:12:43.874Z: size=N/A time=00:00:08.22 bitrate=N/A speed=1.06x elapsed=0:00:07.73    
+[STDERR] 2026-04-03T19:12:44.387Z: size=N/A time=00:00:08.75 bitrate=N/A speed=1.06x elapsed=0:00:08.24    
+[STDERR] 2026-04-03T19:12:44.670Z: [hls @ 00000190d8194b00] Opening 'D:\github\cloudvia-git\quran-live-m3u8\streams\al-nas\seg_002.ts' for writing
+
+[STDERR] 2026-04-03T19:12:44.671Z: [hls @ 00000190d8194b00] Opening 'D:\github\cloudvia-git\quran-live-m3u8\streams\al-nas\stream.m3u8.tmp' for writing
+
+[STDERR] 2026-04-03T19:12:44.903Z: size=N/A time=00:00:09.24 bitrate=N/A speed=1.06x elapsed=0:00:08.75    
+[STDERR] 2026-04-03T19:12:45.430Z: size=N/A time=00:00:09.79 bitrate=N/A speed=1.05x elapsed=0:00:09.28    
+[STDERR] 2026-04-03T19:12:45.959Z: size=N/A time=00:00:10.31 bitrate=N/A speed=1.05x elapsed=0:00:09.81    
+[STDERR] 2026-04-03T19:12:46.472Z: size=N/A time=00:00:10.81 bitrate=N/A speed=1.05x elapsed=0:00:10.32    
+[STDERR] 2026-04-03T19:12:46.985Z: size=N/A time=00:00:11.33 bitrate=N/A speed=1.05x elapsed=0:00:10.84    
+[STDERR] 2026-04-03T19:12:47.500Z: size=N/A time=00:00:11.85 bitrate=N/A speed=1.04x elapsed=0:00:11.35    
+[STDERR] 2026-04-03T19:12:47.670Z: [hls @ 00000190d8194b00] Opening 'D:\github\cloudvia-git\quran-live-m3u8\streams\al-nas\seg_003.ts' for writing
+
+[STDERR] 2026-04-03T19:12:47.671Z: [hls @ 00000190d8194b00] Opening 'D:\github\cloudvia-git\quran-live-m3u8\streams\al-nas\stream.m3u8.tmp' for writing
+
+[STDERR] 2026-04-03T19:12:48.012Z: size=N/A time=00:00:12.35 bitrate=N/A speed=1.04x elapsed=0:00:11.86    
+[STDERR] 2026-04-03T19:12:48.526Z: size=N/A time=00:00:12.87 bitrate=N/A speed=1.04x elapsed=0:00:12.38    
+[STDERR] 2026-04-03T19:12:49.051Z: size=N/A time=00:00:13.40 bitrate=N/A speed=1.04x elapsed=0:00:12.90    
+[STDERR] 2026-04-03T19:12:49.561Z: size=N/A time=00:00:13.92 bitrate=N/A speed=1.04x elapsed=0:00:13.41    
+[STDERR] 2026-04-03T19:12:50.075Z: size=N/A time=00:00:14.44 bitrate=N/A speed=1.04x elapsed=0:00:13.93    
+[STDERR] 2026-04-03T19:12:50.589Z: size=N/A time=00:00:14.94 bitrate=N/A speed=1.03x elapsed=0:00:14.44    
+[STDERR] 2026-04-03T19:12:50.666Z: [hls @ 00000190d8194b00] Opening 'D:\github\cloudvia-git\quran-live-m3u8\streams\al-nas\seg_004.ts' for writing
+
+[STDERR] 2026-04-03T19:12:50.667Z: [hls @ 00000190d8194b00] Opening 'D:\github\cloudvia-git\quran-live-m3u8\streams\al-nas\stream.m3u8.tmp' for writing
+
+[STDERR] 2026-04-03T19:12:51.117Z: size=N/A time=00:00:15.46 bitrate=N/A speed=1.03x elapsed=0:00:14.97    
+[STDERR] 2026-04-03T19:12:51.629Z: size=N/A time=00:00:15.98 bitrate=N/A speed=1.03x elapsed=0:00:15.48    
+[STDERR] 2026-04-03T19:12:52.143Z: size=N/A time=00:00:16.50 bitrate=N/A speed=1.03x elapsed=0:00:15.99    
+[STDERR] 2026-04-03T19:12:52.655Z: size=N/A time=00:00:17.00 bitrate=N/A speed=1.03x elapsed=0:00:16.51    
+[STDERR] 2026-04-03T19:12:53.165Z: size=N/A time=00:00:17.50 bitrate=N/A speed=1.03x elapsed=0:00:17.02    
+[STDERR] 2026-04-03T19:12:53.678Z: [hls @ 00000190d8194b00] Opening 'D:\github\cloudvia-git\quran-live-m3u8\streams\al-nas\seg_005.ts' for writing
+
+[STDERR] 2026-04-03T19:12:53.679Z: [hls @ 00000190d8194b00] Opening 'D:\github\cloudvia-git\quran-live-m3u8\streams\al-nas\stream.m3u8.tmp' for writing
+
+[STDERR] 2026-04-03T19:12:53.694Z: size=N/A time=00:00:18.05 bitrate=N/A speed=1.03x elapsed=0:00:17.54    
+[STDERR] 2026-04-03T19:12:54.209Z: size=N/A time=00:00:18.57 bitrate=N/A speed=1.03x elapsed=0:00:18.06    
+[STDERR] 2026-04-03T19:12:54.722Z: size=N/A time=00:00:19.06 bitrate=N/A speed=1.03x elapsed=0:00:18.57    
+[STDERR] 2026-04-03T19:12:55.232Z: size=N/A time=00:00:19.59 bitrate=N/A speed=1.03x elapsed=0:00:19.08    
+[STDERR] 2026-04-03T19:12:55.232Z: 
+[STDERR] 2026-04-03T19:12:55.745Z: size=N/A time=00:00:20.08 bitrate=N/A speed=1.02x elapsed=0:00:19.60    
+[STDERR] 2026-04-03T19:12:56.272Z: size=N/A time=00:00:20.63 bitrate=N/A speed=1.03x elapsed=0:00:20.12    
+[STDERR] 2026-04-03T19:12:56.660Z: [hls @ 00000190d8194b00] Opening 'D:\github\cloudvia-git\quran-live-m3u8\streams\al-nas\seg_006.ts' for writing
+
+[STDERR] 2026-04-03T19:12:56.662Z: [hls @ 00000190d8194b00] Opening 'D:\github\cloudvia-git\quran-live-m3u8\streams\al-nas\stream.m3u8.tmp' for writing
+
+[STDERR] 2026-04-03T19:12:56.787Z: size=N/A time=00:00:21.13 bitrate=N/A speed=1.02x elapsed=0:00:20.64    
+[STDERR] 2026-04-03T19:12:57.301Z: size=N/A time=00:00:21.65 bitrate=N/A speed=1.02x elapsed=0:00:21.15    
+[STDERR] 2026-04-03T19:12:57.817Z: size=N/A time=00:00:22.17 bitrate=N/A speed=1.02x elapsed=0:00:21.67    
+[STDERR] 2026-04-03T19:12:58.331Z: size=N/A time=00:00:22.70 bitrate=N/A speed=1.02x elapsed=0:00:22.18    
+[STDERR] 2026-04-03T19:12:58.845Z: size=N/A time=00:00:23.19 bitrate=N/A speed=1.02x elapsed=0:00:22.70    
+[STDERR] 2026-04-03T19:12:59.358Z: size=N/A time=00:00:23.71 bitrate=N/A speed=1.02x elapsed=0:00:23.21    
+[STDERR] 2026-04-03T19:12:59.654Z: [hls @ 00000190d8194b00] Opening 'D:\github\cloudvia-git\quran-live-m3u8\streams\al-nas\seg_007.ts' for writing
+
+[STDERR] 2026-04-03T19:12:59.656Z: [hls @ 00000190d8194b00] Opening 'D:\github\cloudvia-git\quran-live-m3u8\streams\al-nas\stream.m3u8.tmp' for writing
+
+[STDERR] 2026-04-03T19:12:59.872Z: size=N/A time=00:00:24.21 bitrate=N/A speed=1.02x elapsed=0:00:23.72    
+[STDERR] 2026-04-03T19:13:00.384Z: size=N/A time=00:00:24.73 bitrate=N/A speed=1.02x elapsed=0:00:24.24    
+[STDERR] 2026-04-03T19:13:00.913Z: size=N/A time=00:00:25.26 bitrate=N/A speed=1.02x elapsed=0:00:24.76    
+[STDERR] 2026-04-03T19:13:01.423Z: size=N/A time=00:00:25.78 bitrate=N/A speed=1.02x elapsed=0:00:25.27    
+[STDERR] 2026-04-03T19:13:01.936Z: size=N/A time=00:00:26.27 bitrate=N/A speed=1.02x elapsed=0:00:25.79    
+[STDERR] 2026-04-03T19:13:02.448Z: size=N/A time=00:00:26.80 bitrate=N/A speed=1.02x elapsed=0:00:26.30    
+[STDERR] 2026-04-03T19:13:02.668Z: [hls @ 00000190d8194b00] Opening 'D:\github\cloudvia-git\quran-live-m3u8\streams\al-nas\seg_008.ts' for writing
+
+[STDERR] 2026-04-03T19:13:02.670Z: [hls @ 00000190d8194b00] Opening 'D:\github\cloudvia-git\quran-live-m3u8\streams\al-nas\stream.m3u8.tmp' for writing
+
+[STDERR] 2026-04-03T19:13:02.963Z: size=N/A time=00:00:27.32 bitrate=N/A speed=1.02x elapsed=0:00:26.81    
+[STDERR] 2026-04-03T19:13:03.477Z: size=N/A time=00:00:27.84 bitrate=N/A speed=1.02x elapsed=0:00:27.33    
+[STDERR] 2026-04-03T19:13:04.009Z: size=N/A time=00:00:28.36 bitrate=N/A speed=1.02x elapsed=0:00:27.86    
+[STDERR] 2026-04-03T19:13:04.009Z: 
+[STDERR] 2026-04-03T19:13:04.524Z: size=N/A time=00:00:28.86 bitrate=N/A speed=1.02x elapsed=0:00:28.38    
+[STDERR] 2026-04-03T19:13:05.049Z: size=N/A time=00:00:29.41 bitrate=N/A speed=1.02x elapsed=0:00:28.90    
+[STDERR] 2026-04-03T19:13:05.559Z: size=N/A time=00:00:29.93 bitrate=N/A speed=1.02x elapsed=0:00:29.41    
+[STDERR] 2026-04-03T19:13:05.666Z: [hls @ 00000190d8194b00] Opening 'D:\github\cloudvia-git\quran-live-m3u8\streams\al-nas\seg_009.ts' for writing
+
+[STDERR] 2026-04-03T19:13:05.667Z: [hls @ 00000190d8194b00] Opening 'D:\github\cloudvia-git\quran-live-m3u8\streams\al-nas\stream.m3u8.tmp' for writing
+
+[HEALTH] Uptime: 30s, Segments: 21, PID: 7700
+[STDERR] 2026-04-03T19:13:06.097Z: size=N/A time=00:00:30.43 bitrate=N/A speed=1.02x elapsed=0:00:29.93    
+[STDERR] 2026-04-03T19:13:06.596Z: size=N/A time=00:00:30.95 bitrate=N/A speed=1.02x elapsed=0:00:30.45    
+[STDERR] 2026-04-03T19:13:07.109Z: size=N/A time=00:00:31.45 bitrate=N/A speed=1.02x elapsed=0:00:30.96    
+[STDERR] 2026-04-03T19:13:07.631Z: size=N/A time=00:00:32.00 bitrate=N/A speed=1.02x elapsed=0:00:31.48    
+[STDERR] 2026-04-03T19:13:08.142Z: size=N/A time=00:00:32.49 bitrate=N/A speed=1.02x elapsed=0:00:31.99    
+[STDERR] 2026-04-03T19:13:08.652Z: size=N/A time=00:00:32.99 bitrate=N/A speed=1.01x elapsed=0:00:32.50    
+[STDERR] 2026-04-03T19:13:08.667Z: [hls @ 00000190d8194b00] Opening 'D:\github\cloudvia-git\quran-live-m3u8\streams\al-nas\seg_010.ts' for writing
+
+[STDERR] 2026-04-03T19:13:08.668Z: [hls @ 00000190d8194b00] Opening 'D:\github\cloudvia-git\quran-live-m3u8\streams\al-nas\stream.m3u8.tmp' for writing
+
+[STDERR] 2026-04-03T19:13:09.174Z: size=N/A time=00:00:33.51 bitrate=N/A speed=1.01x elapsed=0:00:33.03    
+[STDERR] 2026-04-03T19:13:09.695Z: size=N/A time=00:00:34.03 bitrate=N/A speed=1.01x elapsed=0:00:33.55    
+[STDERR] 2026-04-03T19:13:10.203Z: size=N/A time=00:00:34.56 bitrate=N/A speed=1.01x elapsed=0:00:34.05    
+[STDERR] 2026-04-03T19:13:10.724Z: size=N/A time=00:00:35.08 bitrate=N/A speed=1.01x elapsed=0:00:34.57    
+[STDERR] 2026-04-03T19:13:11.232Z: size=N/A time=00:00:35.57 bitrate=N/A speed=1.01x elapsed=0:00:35.08    
+[STDERR] 2026-04-03T19:13:11.679Z: [hls @ 00000190d8194b00] Opening 'D:\github\cloudvia-git\quran-live-m3u8\streams\al-nas\seg_011.ts' for writing
+
+[STDERR] 2026-04-03T19:13:11.681Z: [hls @ 00000190d8194b00] Opening 'D:\github\cloudvia-git\quran-live-m3u8\streams\al-nas\stream.m3u8.tmp' for writing
+
+[STDERR] 2026-04-03T19:13:11.755Z: size=N/A time=00:00:36.12 bitrate=N/A speed=1.01x elapsed=0:00:35.61    
+[STDERR] 2026-04-03T19:13:12.264Z: size=N/A time=00:00:36.62 bitrate=N/A speed=1.01x elapsed=0:00:36.12    
+[STDERR] 2026-04-03T19:13:12.775Z: size=N/A time=00:00:37.14 bitrate=N/A speed=1.01x elapsed=0:00:36.63    
+[STDERR] 2026-04-03T19:13:13.303Z: size=N/A time=00:00:37.66 bitrate=N/A speed=1.01x elapsed=0:00:37.15    
+[STDERR] 2026-04-03T19:13:13.814Z: size=N/A time=00:00:38.16 bitrate=N/A speed=1.01x elapsed=0:00:37.67    
+[STDERR] 2026-04-03T19:13:14.326Z: size=N/A time=00:00:38.68 bitrate=N/A speed=1.01x elapsed=0:00:38.18    
+[STDERR] 2026-04-03T19:13:14.653Z: [hls @ 00000190d8194b00] Opening 'D:\github\cloudvia-git\quran-live-m3u8\streams\al-nas\seg_012.ts' for writing
+
+[STDERR] 2026-04-03T19:13:14.654Z: [hls @ 00000190d8194b00] Opening 'D:\github\cloudvia-git\quran-live-m3u8\streams\al-nas\stream.m3u8.tmp' for writing
+
+[STDERR] 2026-04-03T19:13:14.840Z: size=N/A time=00:00:39.18 bitrate=N/A speed=1.01x elapsed=0:00:38.69    
+[STDERR] 2026-04-03T19:13:15.353Z: size=N/A time=00:00:39.70 bitrate=N/A speed=1.01x elapsed=0:00:39.20    
+[STDERR] 2026-04-03T19:13:15.879Z: size=N/A time=00:00:40.22 bitrate=N/A speed=1.01x elapsed=0:00:39.73    
+[STDERR] 2026-04-03T19:13:16.392Z: size=N/A time=00:00:40.75 bitrate=N/A speed=1.01x elapsed=0:00:40.24    
+[STDERR] 2026-04-03T19:13:16.906Z: size=N/A time=00:00:41.27 bitrate=N/A speed=1.01x elapsed=0:00:40.76    
+[STDERR] 2026-04-03T19:13:17.420Z: size=N/A time=00:00:41.79 bitrate=N/A speed=1.01x elapsed=0:00:41.27    
+[STDERR] 2026-04-03T19:13:17.654Z: [hls @ 00000190d8194b00] Opening 'D:\github\cloudvia-git\quran-live-m3u8\streams\al-nas\seg_013.ts' for writing
+
+[STDERR] 2026-04-03T19:13:17.655Z: [hls @ 00000190d8194b00] Opening 'D:\github\cloudvia-git\quran-live-m3u8\streams\al-nas\stream.m3u8.tmp' for writing
+
+[STDERR] 2026-04-03T19:13:17.934Z: size=N/A time=00:00:42.29 bitrate=N/A speed=1.01x elapsed=0:00:41.78    
+[STDERR] 2026-04-03T19:13:18.447Z: size=N/A time=00:00:42.78 bitrate=N/A speed=1.01x elapsed=0:00:42.30    
+[STDERR] 2026-04-03T19:13:18.974Z: size=N/A time=00:00:43.33 bitrate=N/A speed=1.01x elapsed=0:00:42.82    
+[STDERR] 2026-04-03T19:13:19.486Z: size=N/A time=00:00:43.85 bitrate=N/A speed=1.01x elapsed=0:00:43.34    
+[STDERR] 2026-04-03T19:13:19.997Z: size=N/A time=00:00:44.35 bitrate=N/A speed=1.01x elapsed=0:00:43.85    
+[STDERR] 2026-04-03T19:13:20.524Z: size=N/A time=00:00:44.87 bitrate=N/A speed=1.01x elapsed=0:00:44.37    
+[STDERR] 2026-04-03T19:13:20.663Z: [hls @ 00000190d8194b00] Opening 'D:\github\cloudvia-git\quran-live-m3u8\streams\al-nas\seg_014.ts' for writing
+
+[STDERR] 2026-04-03T19:13:20.664Z: [hls @ 00000190d8194b00] Opening 'D:\github\cloudvia-git\quran-live-m3u8\streams\al-nas\stream.m3u8.tmp' for writing
+
+[STDERR] 2026-04-03T19:13:21.035Z: size=N/A time=00:00:45.37 bitrate=N/A speed=1.01x elapsed=0:00:44.89    
+[STDERR] 2026-04-03T19:13:21.549Z: size=N/A time=00:00:45.92 bitrate=N/A speed=1.01x elapsed=0:00:45.40    
+[STDERR] 2026-04-03T19:13:22.061Z: size=N/A time=00:00:46.41 bitrate=N/A speed=1.01x elapsed=0:00:45.91    
+[STDERR] 2026-04-03T19:13:22.576Z: size=N/A time=00:00:46.94 bitrate=N/A speed=1.01x elapsed=0:00:46.43    
+[STDERR] 2026-04-03T19:13:23.092Z: size=N/A time=00:00:47.43 bitrate=N/A speed=1.01x elapsed=0:00:46.94    
+[STDERR] 2026-04-03T19:13:23.605Z: size=N/A time=00:00:47.96 bitrate=N/A speed=1.01x elapsed=0:00:47.46    
+[STDERR] 2026-04-03T19:13:23.668Z: [hls @ 00000190d8194b00] Opening 'D:\github\cloudvia-git\quran-live-m3u8\streams\al-nas\seg_015.ts' for writing
+
+[STDERR] 2026-04-03T19:13:23.669Z: [hls @ 00000190d8194b00] Opening 'D:\github\cloudvia-git\quran-live-m3u8\streams\al-nas\stream.m3u8.tmp' for writing
+
+[STDERR] 2026-04-03T19:13:24.120Z: size=N/A time=00:00:48.48 bitrate=N/A speed=1.01x elapsed=0:00:47.97    
+[STDERR] 2026-04-03T19:13:24.648Z: size=N/A time=00:00:49.00 bitrate=N/A speed=1.01x elapsed=0:00:48.50    
+[STDERR] 2026-04-03T19:13:25.160Z: size=N/A time=00:00:49.52 bitrate=N/A speed=1.01x elapsed=0:00:49.01    
+[STDERR] 2026-04-03T19:13:25.674Z: size=N/A time=00:00:50.02 bitrate=N/A speed=1.01x elapsed=0:00:49.52    
+[STDERR] 2026-04-03T19:13:26.189Z: size=N/A time=00:00:50.54 bitrate=N/A speed=1.01x elapsed=0:00:50.04    
+[STDERR] 2026-04-03T19:13:26.672Z: [hls @ 00000190d8194b00] Opening 'D:\github\cloudvia-git\quran-live-m3u8\streams\al-nas\seg_016.ts' for writing
+
+[STDERR] 2026-04-03T19:13:26.673Z: [hls @ 00000190d8194b00] Opening 'D:\github\cloudvia-git\quran-live-m3u8\streams\al-nas\stream.m3u8.tmp' for writing
+
+[STDERR] 2026-04-03T19:13:26.703Z: size=N/A time=00:00:51.04 bitrate=N/A speed=1.01x elapsed=0:00:50.55    
+[STDERR] 2026-04-03T19:13:27.217Z: size=N/A time=00:00:51.59 bitrate=N/A speed=1.01x elapsed=0:00:51.07    
+[STDERR] 2026-04-03T19:13:27.727Z: size=N/A time=00:00:52.08 bitrate=N/A speed=1.01x elapsed=0:00:51.58    
+[STDERR] 2026-04-03T19:13:28.256Z: size=N/A time=00:00:52.61 bitrate=N/A speed=1.01x elapsed=0:00:52.11    
+[STDERR] 2026-04-03T19:13:28.769Z: size=N/A time=00:00:53.13 bitrate=N/A speed=1.01x elapsed=0:00:52.62    
+[STDERR] 2026-04-03T19:13:29.284Z: size=N/A time=00:00:53.62 bitrate=N/A speed=1.01x elapsed=0:00:53.13    
+[STDERR] 2026-04-03T19:13:29.671Z: [hls @ 00000190d8194b00] Opening 'D:\github\cloudvia-git\quran-live-m3u8\streams\al-nas\seg_017.ts' for writing
+
+[STDERR] 2026-04-03T19:13:29.673Z: [hls @ 00000190d8194b00] Opening 'D:\github\cloudvia-git\quran-live-m3u8\streams\al-nas\stream.m3u8.tmp' for writing
+
+[STDERR] 2026-04-03T19:13:29.795Z: size=N/A time=00:00:54.15 bitrate=N/A speed=1.01x elapsed=0:00:53.65    
+[STDERR] 2026-04-03T19:13:30.309Z: size=N/A time=00:00:54.67 bitrate=N/A speed=1.01x elapsed=0:00:54.16    
+[STDERR] 2026-04-03T19:13:30.823Z: size=N/A time=00:00:55.17 bitrate=N/A speed=1.01x elapsed=0:00:54.67    
+[STDERR] 2026-04-03T19:13:31.350Z: size=N/A time=00:00:55.69 bitrate=N/A speed=1.01x elapsed=0:00:55.20    
+[STDERR] 2026-04-03T19:13:31.866Z: size=N/A time=00:00:56.21 bitrate=N/A speed=1.01x elapsed=0:00:55.72    
+[STDERR] 2026-04-03T19:13:32.379Z: size=N/A time=00:00:56.73 bitrate=N/A speed=1.01x elapsed=0:00:56.23    
+[STDERR] 2026-04-03T19:13:32.673Z: [hls @ 00000190d8194b00] Opening 'D:\github\cloudvia-git\quran-live-m3u8\streams\al-nas\seg_018.ts' for writing
+
+[STDERR] 2026-04-03T19:13:32.675Z: [hls @ 00000190d8194b00] Opening 'D:\github\cloudvia-git\quran-live-m3u8\streams\al-nas\stream.m3u8.tmp' for writing
+
+[STDERR] 2026-04-03T19:13:32.891Z: size=N/A time=00:00:57.23 bitrate=N/A speed=1.01x elapsed=0:00:56.74    
+[STDERR] 2026-04-03T19:13:33.401Z: size=N/A time=00:00:57.75 bitrate=N/A speed=1.01x elapsed=0:00:57.25    
+[STDERR] 2026-04-03T19:13:33.928Z: size=N/A time=00:00:58.27 bitrate=N/A speed=1.01x elapsed=0:00:57.78    
+[STDERR] 2026-04-03T19:13:34.441Z: size=N/A time=00:00:58.80 bitrate=N/A speed=1.01x elapsed=0:00:58.29    
+[STDERR] 2026-04-03T19:13:34.955Z: size=N/A time=00:00:59.29 bitrate=N/A speed=1.01x elapsed=0:00:58.81    
+[STDERR] 2026-04-03T19:13:35.469Z: size=N/A time=00:00:59.82 bitrate=N/A speed=1.01x elapsed=0:00:59.32    
+[STDERR] 2026-04-03T19:13:35.469Z: 
+[STDERR] 2026-04-03T19:13:35.656Z: [hls @ 00000190d8194b00] Opening 'D:\github\cloudvia-git\quran-live-m3u8\streams\al-nas\seg_019.ts' for writing
+
+[STDERR] 2026-04-03T19:13:35.658Z: [hls @ 00000190d8194b00] Opening 'D:\github\cloudvia-git\quran-live-m3u8\streams\al-nas\stream.m3u8.tmp' for writing
+
+[STDERR] 2026-04-03T19:13:35.983Z: size=N/A time=00:01:00.34 bitrate=N/A speed=1.01x elapsed=0:00:59.83    
+[HEALTH] Uptime: 60s, Segments: 21, PID: 7700
+[STDERR] 2026-04-03T19:13:36.495Z: size=N/A time=00:01:00.83 bitrate=N/A speed=1.01x elapsed=0:01:00.35    
+[STDERR] 2026-04-03T19:13:37.009Z: size=N/A time=00:01:01.36 bitrate=N/A speed=1.01x elapsed=0:01:00.86    
+[STDERR] 2026-04-03T19:13:37.524Z: size=N/A time=00:01:01.88 bitrate=N/A speed=1.01x elapsed=0:01:01.37    
+[STDERR] 2026-04-03T19:13:38.052Z: size=N/A time=00:01:02.40 bitrate=N/A speed=1.01x elapsed=0:01:01.90    
+[STDERR] 2026-04-03T19:13:38.564Z: size=N/A time=00:01:02.92 bitrate=N/A speed=1.01x elapsed=0:01:02.41    
+[STDERR] 2026-04-03T19:13:38.658Z: [hls @ 00000190d8194b00] Opening 'D:\github\cloudvia-git\quran-live-m3u8\streams\al-nas\seg_020.ts' for writing
+
+[STDERR] 2026-04-03T19:13:38.659Z: [hls @ 00000190d8194b00] Opening 'D:\github\cloudvia-git\quran-live-m3u8\streams\al-nas\stream.m3u8.tmp' for writing
+
+[STDERR] 2026-04-03T19:13:39.077Z: size=N/A time=00:01:03.45 bitrate=N/A speed=1.01x elapsed=0:01:02.93    
+[STDERR] 2026-04-03T19:13:39.590Z: size=N/A time=00:01:03.94 bitrate=N/A speed=1.01x elapsed=0:01:03.44    
+[STDERR] 2026-04-03T19:13:40.117Z: size=N/A time=00:01:04.47 bitrate=N/A speed=1.01x elapsed=0:01:03.97    
+[STDERR] 2026-04-03T19:13:40.631Z: size=N/A time=00:01:04.99 bitrate=N/A speed=1.01x elapsed=0:01:04.48    
+[STDERR] 2026-04-03T19:13:41.145Z: size=N/A time=00:01:05.48 bitrate=N/A speed=1.01x elapsed=0:01:05.00    
+[STDERR] 2026-04-03T19:13:41.655Z: size=N/A time=00:01:06.01 bitrate=N/A speed=1.01x elapsed=0:01:05.51    
+[STDERR] 2026-04-03T19:13:41.670Z: [hls @ 00000190d8194b00] Opening 'D:\github\cloudvia-git\quran-live-m3u8\streams\al-nas\seg_021.ts' for writing
+
+[STDERR] 2026-04-03T19:13:41.671Z: [hls @ 00000190d8194b00] Opening 'D:\github\cloudvia-git\quran-live-m3u8\streams\al-nas\stream.m3u8.tmp' for writing
+
+[STDERR] 2026-04-03T19:13:42.166Z: size=N/A time=00:01:06.53 bitrate=N/A speed=1.01x elapsed=0:01:06.02    
+[STDERR] 2026-04-03T19:13:42.696Z: size=N/A time=00:01:07.03 bitrate=N/A speed=1.01x elapsed=0:01:06.55    
+[STDERR] 2026-04-03T19:13:43.210Z: size=N/A time=00:01:07.55 bitrate=N/A speed=1.01x elapsed=0:01:07.06    
+[STDERR] 2026-04-03T19:13:43.724Z: size=N/A time=00:01:08.07 bitrate=N/A speed=1.01x elapsed=0:01:07.57    
+[STDERR] 2026-04-03T19:13:44.237Z: size=N/A time=00:01:08.59 bitrate=N/A speed=1.01x elapsed=0:01:08.09    
+[STDERR] 2026-04-03T19:13:44.673Z: [hls @ 00000190d8194b00] Opening 'D:\github\cloudvia-git\quran-live-m3u8\streams\al-nas\seg_022.ts' for writing
+
+[STDERR] 2026-04-03T19:13:44.675Z: [hls @ 00000190d8194b00] Opening 'D:\github\cloudvia-git\quran-live-m3u8\streams\al-nas\stream.m3u8.tmp' for writing
+
+[STDERR] 2026-04-03T19:13:44.752Z: size=N/A time=00:01:09.09 bitrate=N/A speed=1.01x elapsed=0:01:08.60    
+[STDERR] 2026-04-03T19:13:45.267Z: size=N/A time=00:01:09.61 bitrate=N/A speed=1.01x elapsed=0:01:09.12    
+[STDERR] 2026-04-03T19:13:45.780Z: size=N/A time=00:01:10.13 bitrate=N/A speed=1.01x elapsed=0:01:09.63    
+[STDERR] 2026-04-03T19:13:45.781Z: 
+[STDERR] 2026-04-03T19:13:46.294Z: size=N/A time=00:01:10.63 bitrate=N/A speed=1.01x elapsed=0:01:10.14    
+[STDERR] 2026-04-03T19:13:46.807Z: size=N/A time=00:01:11.15 bitrate=N/A speed=1.01x elapsed=0:01:10.66    
+[STDERR] 2026-04-03T19:13:47.334Z: size=N/A time=00:01:11.70 bitrate=N/A speed=1.01x elapsed=0:01:11.19    
+[STDERR] 2026-04-03T19:13:47.679Z: [hls @ 00000190d8194b00] Opening 'D:\github\cloudvia-git\quran-live-m3u8\streams\al-nas\seg_023.ts' for writing
+
+[STDERR] 2026-04-03T19:13:47.680Z: [hls @ 00000190d8194b00] Opening 'D:\github\cloudvia-git\quran-live-m3u8\streams\al-nas\stream.m3u8.tmp' for writing
+
+[STDERR] 2026-04-03T19:13:47.850Z: size=N/A time=00:01:12.20 bitrate=N/A speed=1.01x elapsed=0:01:11.70    
+[STDERR] 2026-04-03T19:13:48.361Z: size=N/A time=00:01:12.72 bitrate=N/A speed=1.01x elapsed=0:01:12.21    
+[STDERR] 2026-04-03T19:13:48.876Z: size=N/A time=00:01:13.22 bitrate=N/A speed=1.01x elapsed=0:01:12.73    
+[STDERR] 2026-04-03T19:13:49.388Z: size=N/A time=00:01:13.74 bitrate=N/A speed=1.01x elapsed=0:01:13.24    
+[STDERR] 2026-04-03T19:13:49.904Z: size=N/A time=00:01:14.26 bitrate=N/A speed=1.01x elapsed=0:01:13.75    
+[STDERR] 2026-04-03T19:13:50.415Z: size=N/A time=00:01:14.76 bitrate=N/A speed=1.01x elapsed=0:01:14.27    
+[STDERR] 2026-04-03T19:13:50.679Z: [hls @ 00000190d8194b00] Opening 'D:\github\cloudvia-git\quran-live-m3u8\streams\al-nas\seg_024.ts' for writing
+
+[STDERR] 2026-04-03T19:13:50.681Z: [hls @ 00000190d8194b00] Opening 'D:\github\cloudvia-git\quran-live-m3u8\streams\al-nas\stream.m3u8.tmp' for writing
+
+[STDERR] 2026-04-03T19:13:50.943Z: size=N/A time=00:01:15.31 bitrate=N/A speed=1.01x elapsed=0:01:14.79    
+[STDERR] 2026-04-03T19:13:51.455Z: size=N/A time=00:01:15.80 bitrate=N/A speed=1.01x elapsed=0:01:15.31    
+[STDERR] 2026-04-03T19:13:51.967Z: size=N/A time=00:01:16.32 bitrate=N/A speed=1.01x elapsed=0:01:15.82    
+[STDERR] 2026-04-03T19:13:52.480Z: size=N/A time=00:01:16.82 bitrate=N/A speed=1.01x elapsed=0:01:16.33    
+[STDERR] 2026-04-03T19:13:52.996Z: size=N/A time=00:01:17.34 bitrate=N/A speed=1.01x elapsed=0:01:16.85    
+[STDERR] 2026-04-03T19:13:53.522Z: size=N/A time=00:01:17.89 bitrate=N/A speed=1.01x elapsed=0:01:17.37    
+[STDERR] 2026-04-03T19:13:53.660Z: [hls @ 00000190d8194b00] Opening 'D:\github\cloudvia-git\quran-live-m3u8\streams\al-nas\seg_025.ts' for writing
+
+[STDERR] 2026-04-03T19:13:53.661Z: [hls @ 00000190d8194b00] Opening 'D:\github\cloudvia-git\quran-live-m3u8\streams\al-nas\stream.m3u8.tmp' for writing
+
+[STDERR] 2026-04-03T19:13:54.035Z: size=N/A time=00:01:18.39 bitrate=N/A speed=1.01x elapsed=0:01:17.89    
+[STDERR] 2026-04-03T19:13:54.548Z: size=N/A time=00:01:18.88 bitrate=N/A speed=1.01x elapsed=0:01:18.40    
+[STDERR] 2026-04-03T19:13:55.061Z: size=N/A time=00:01:19.41 bitrate=N/A speed=1.01x elapsed=0:01:18.91    
+[STDERR] 2026-04-03T19:13:55.574Z: size=N/A time=00:01:19.93 bitrate=N/A speed=1.01x elapsed=0:01:19.43    
+[STDERR] 2026-04-03T19:13:56.089Z: size=N/A time=00:01:20.43 bitrate=N/A speed=1.01x elapsed=0:01:19.94    
+[STDERR] 2026-04-03T19:13:56.617Z: size=N/A time=00:01:20.95 bitrate=N/A speed=1.01x elapsed=0:01:20.47    
+[STDERR] 2026-04-03T19:13:56.664Z: [hls @ 00000190d8194b00] Opening 'D:\github\cloudvia-git\quran-live-m3u8\streams\al-nas\seg_026.ts' for writing
+
+[STDERR] 2026-04-03T19:13:56.665Z: [hls @ 00000190d8194b00] Opening 'D:\github\cloudvia-git\quran-live-m3u8\streams\al-nas\stream.m3u8.tmp' for writing
+
+[STDERR] 2026-04-03T19:13:57.130Z: size=N/A time=00:01:21.47 bitrate=N/A speed=1.01x elapsed=0:01:20.98    
+[STDERR] 2026-04-03T19:13:57.642Z: size=N/A time=00:01:21.99 bitrate=N/A speed=1.01x elapsed=0:01:21.49    
+[STDERR] 2026-04-03T19:13:58.153Z: size=N/A time=00:01:22.49 bitrate=N/A speed=1.01x elapsed=0:01:22.00    
+[STDERR] 2026-04-03T19:13:58.154Z: 
+[STDERR] 2026-04-03T19:13:58.666Z: size=N/A time=00:01:23.01 bitrate=N/A speed=1.01x elapsed=0:01:22.52    
+[STDERR] 2026-04-03T19:13:59.196Z: size=N/A time=00:01:23.53 bitrate=N/A speed=1.01x elapsed=0:01:23.05    
+[STDERR] 2026-04-03T19:13:59.663Z: [hls @ 00000190d8194b00] Opening 'D:\github\cloudvia-git\quran-live-m3u8\streams\al-nas\seg_027.ts' for writing
+
+[STDERR] 2026-04-03T19:13:59.664Z: [hls @ 00000190d8194b00] Opening 'D:\github\cloudvia-git\quran-live-m3u8\streams\al-nas\stream.m3u8.tmp' for writing
+
+[STDERR] 2026-04-03T19:13:59.710Z: size=N/A time=00:01:24.06 bitrate=N/A speed=1.01x elapsed=0:01:23.56    
+[STDERR] 2026-04-03T19:14:00.224Z: size=N/A time=00:01:24.58 bitrate=N/A speed=1.01x elapsed=0:01:24.07    
+[STDERR] 2026-04-03T19:14:00.736Z: size=N/A time=00:01:25.10 bitrate=N/A speed=1.01x elapsed=0:01:24.59    
+[STDERR] 2026-04-03T19:14:01.250Z: size=N/A time=00:01:25.60 bitrate=N/A speed=1.01x elapsed=0:01:25.10    
+[STDERR] 2026-04-03T19:14:01.763Z: size=N/A time=00:01:26.12 bitrate=N/A speed=1.01x elapsed=0:01:25.61    

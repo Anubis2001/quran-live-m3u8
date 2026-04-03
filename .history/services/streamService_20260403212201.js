@@ -172,22 +172,8 @@ function startStream(name, filePath) {
   const ffmpegProcess = spawn('ffmpeg', ffmpegArgs, {
     detached: true,              // Run in background (survives parent exit)
     stdio: ['ignore', 'pipe', 'pipe'],  // stdin, stdout, stderr
-    cwd: dir,                    // Set working directory to output folder
-    windowsHide: true            // Hide console window on Windows
+    cwd: dir                     // Set working directory to output folder
   });
-  
-  // CRITICAL: On Unix systems, set the process group
-  // This allows us to kill all child processes together
-  if (ffmpegProcess.pid && process.platform !== 'win32') {
-    try {
-      // Make this process the leader of a new process group
-      process.kill(ffmpegProcess.pid, 0); // Verify process exists
-      // The detached option already creates a new session on Unix
-      // We just need to track the PID for group operations
-    } catch (e) {
-      console.error(`Warning: Could not verify process group setup:`, e.message);
-    }
-  }
   
   console.log(`✅ Stream '${name}' started successfully (PID: ${ffmpegProcess.pid})`);
   
