@@ -3,19 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>YouTube Audio HLS Streamer (Deprecated)</title>
+    <title>Universal Audio Streamer</title>
     <style>
-        /* Deprecated notice styling */
-        .deprecated-notice {
-            background: linear-gradient(135deg, #f59e0b 0%, #f97316 100%);
-            color: white;
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            text-align: center;
-            font-weight: 600;
-        }
-        
         * {
             margin: 0;
             padding: 0;
@@ -99,6 +88,10 @@
             background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
         }
         
+        .btn-secondary {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        }
+        
         .status-box {
             margin-top: 30px;
             padding: 20px;
@@ -158,32 +151,65 @@
             font-family: 'Courier New', monospace;
             color: #d63384;
         }
+        
+        .platforms-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        .platform-badge {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 6px;
+            text-align: center;
+            font-size: 12px;
+            font-weight: 600;
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <div class="deprecated-notice">
-            ⚠️ This page is deprecated. Please use the new <a href="/universal-streamer.html" style="color: white; text-decoration: underline;">Universal Audio Streamer</a> which supports YouTube, Instagram, SoundCloud, TikTok, and 1000+ more platforms!
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <h1>🎵 Universal Audio Streamer</h1>
+            <a href="/dashboard.html" class="btn btn-secondary" style="text-decoration: none; display: inline-flex; align-items: center; gap: 8px;">
+                <i class="fas fa-arrow-left"></i> Return to Main Page
+            </a>
         </div>
+        <p class="subtitle">Stream audio from any platform as HLS playlists with infinite looping</p>
         
-        <h1>🎵 YouTube Audio HLS Streamer</h1>
-        <p class="subtitle">Stream audio from YouTube videos as HLS playlists with infinite looping</p>
+        <div style="background: #f0f9ff; border-left: 4px solid #667eea; padding: 15px; margin-bottom: 20px; border-radius: 8px;">
+            <p style="color: #667eea; font-weight: 600; margin-bottom: 10px;">🌟 Supported Platforms:</p>
+            <div class="platforms-grid">
+                <div class="platform-badge">YouTube</div>
+                <div class="platform-badge">Instagram</div>
+                <div class="platform-badge">SoundCloud</div>
+                <div class="platform-badge">TikTok</div>
+                <div class="platform-badge">Twitter/X</div>
+                <div class="platform-badge">Facebook</div>
+                <div class="platform-badge">Vimeo</div>
+                <div class="platform-badge">Twitch</div>
+                <div class="platform-badge">+1000 more</div>
+            </div>
+        </div>
         
         <div class="form-group">
             <label for="streamName">Stream Name:</label>
-            <input type="text" id="streamName" placeholder="e.g., quran-surah-rahman" value="youtube-test">
+            <input type="text" id="streamName" placeholder="e.g., my-audio-stream" value="universal-test">
         </div>
         
         <div class="form-group">
-            <label for="youtubeUrl">YouTube URL:</label>
-            <input type="url" id="youtubeUrl" placeholder="https://www.youtube.com/watch?v=..." value="">
+            <label for="mediaUrl">Media URL:</label>
+            <input type="url" id="mediaUrl" placeholder="https://www.youtube.com/watch?v=... or any supported platform URL">
         </div>
         
         <div class="form-group">
             <label for="cookiesPath">Cookies File (Optional):</label>
             <input type="text" id="cookiesPath" placeholder="/path/to/cookies.txt (e.g., /root/cookies.txt)">
             <small style="color: #666; display: block; margin-top: 5px;">
-                🍪 Upload your cookies.txt to authenticate with YouTube for age-restricted or private videos (recommended to use a different browser with a fake youtube account for safety).
+                🍪 Upload your cookies.txt to authenticate for age-restricted or private content (recommended to use a different browser with a fake account for safety).
                 Format: Netscape HTTP Cookie File
             </small>
         </div>
@@ -212,11 +238,11 @@
         
         async function startStream() {
             const name = document.getElementById('streamName').value.trim();
-            const url = document.getElementById('youtubeUrl').value.trim();
+            const url = document.getElementById('mediaUrl').value.trim();
             const cookiesPath = document.getElementById('cookiesPath').value.trim();
             
             if (!name || !url) {
-                alert('Please enter both stream name and YouTube URL');
+                alert('Please enter both stream name and media URL');
                 return;
             }
             
@@ -242,10 +268,11 @@
                 if (response.ok) {
                     const data = await response.json();
                     const authInfo = data.authenticated ? '<br><strong>🍪 Authenticated:</strong> Yes (using cookies)' : '';
+                    const platformInfo = data.platform ? `<br><strong>🎯 Platform:</strong> ${data.platform}` : '';
                     document.getElementById('statusContent').innerHTML = `
                         <div class="success">
                             <strong>✅ Stream started successfully!</strong><br><br>
-                            <strong>Name:</strong> ${data.name}<br>
+                            <strong>Name:</strong> ${data.name}${platformInfo}<br>
                             <strong>Stream URL:</strong> <code>${data.streamUrl}</code>${authInfo}<br><br>
                             <audio controls class="audio-player">
                                 <source src="${data.streamUrl}" type="application/vnd.apple.mpegurl">
@@ -255,8 +282,8 @@
                     `;
                     loadStreams();
                 } else {
-                    const error = await response.text();
-                    throw new Error(error);
+                    const error = await response.json();
+                    throw new Error(error.error || 'Failed to start stream');
                 }
             } catch (error) {
                 document.getElementById('statusContent').innerHTML = `

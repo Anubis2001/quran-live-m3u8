@@ -597,52 +597,7 @@ async function startYoutubeStream(name, mediaUrl, cookiesPath) {
     }
   }
   
-  // Auto-detect cookies from secure cookies directory
-  const cookiesDir = path.join(__dirname, '..', 'cookies');
-  let detectedCookiesPath = null;
-  
-  if (fs.existsSync(cookiesDir)) {
-    try {
-      const files = fs.readdirSync(cookiesDir);
-      const txtFiles = files.filter(f => f.endsWith('.txt'));
-      
-      if (txtFiles.length > 0) {
-        // Prioritize specific cookie files based on platform
-        const urlLower = mediaUrl.toLowerCase();
-        
-        // Try to find platform-specific cookies first
-        if (urlLower.includes('youtube.com') || urlLower.includes('youtu.be')) {
-          const ytCookies = txtFiles.find(f => 
-            f.toLowerCase().includes('youtube') || f === 'cookies.txt'
-          );
-          if (ytCookies) {
-            detectedCookiesPath = path.join(cookiesDir, ytCookies);
-            console.log(`🍪 Auto-detected YouTube cookies: ${ytCookies}`);
-          }
-        } else if (urlLower.includes('instagram.com')) {
-          const igCookies = txtFiles.find(f => 
-            f.toLowerCase().includes('instagram') || f === 'cookies.txt'
-          );
-          if (igCookies) {
-            detectedCookiesPath = path.join(cookiesDir, igCookies);
-            console.log(`🍪 Auto-detected Instagram cookies: ${igCookies}`);
-          }
-        } else {
-          // Use any available cookies file as fallback
-          detectedCookiesPath = path.join(cookiesDir, txtFiles[0]);
-          console.log(`🍪 Using default cookies: ${txtFiles[0]}`);
-        }
-      }
-    } catch (err) {
-      console.warn(`⚠️ Error scanning cookies directory:`, err.message);
-    }
-  }
-  
-  // If auto-detected cookies exist, use them; otherwise check parameter
-  const cookiesPath = detectedCookiesPath || (cookiesPath && fs.existsSync(cookiesPath) ? cookiesPath : null);
-  
-  // Validate cookies file if provided or auto-detected
-  let cookiesValidated = false;
+  // Validate cookies file if provided
   if (cookiesPath) {
     if (!fs.existsSync(cookiesPath)) {
       console.error(`⚠️ Cookies file not found: ${cookiesPath}`);
@@ -650,24 +605,14 @@ async function startYoutubeStream(name, mediaUrl, cookiesPath) {
       cookiesPath = null;
     } else {
       try {
-        // Basic validation - check if it's readable and has content
+        // Basic validation - check if it's readable
         fs.accessSync(cookiesPath, fs.constants.R_OK);
-        const stats = fs.statSync(cookiesPath);
-        
-        if (stats.size === 0) {
-          console.warn(`⚠️ Cookies file is empty: ${cookiesPath}`);
-          cookiesPath = null;
-        } else {
-          console.log(`✓ Cookies file validated (${(stats.size / 1024).toFixed(2)} KB)`);
-          cookiesValidated = true;
-        }
+        console.log(`✓ Cookies file validated successfully`);
       } catch (cookieErr) {
         console.error(`⚠️ Error reading cookies file: ${cookieErr.message}`);
         cookiesPath = null;
       }
     }
-  } else {
-    console.log(`ℹ️ No cookies file found - some platforms may require authentication`);
   }
   
   // Detect platform from URL for better user feedback
@@ -735,45 +680,19 @@ async function startYoutubeStream(name, mediaUrl, cookiesPath) {
         
         // Provide helpful error messages based on common issues
         let errorMsg = stderr || error.message;
-        let requiresCookies = false;
-        
-        // Detect cookie-related errors
-        const cookieErrorPatterns = [
-          'Sign in to confirm your age',
-          'Please sign in',
-          'This video is private',
-          'Private video',
-          'Video is unavailable',
-          'members-only',
-          'Join this channel',
-          'Subscribe to join'
-        ];
-        
-        // Check if error is related to missing authentication
-        if (cookieErrorPatterns.some(pattern => stderr.includes(pattern))) {
-          requiresCookies = true;
-          
-          if (!cookiesPath || !cookiesValidated) {
-            errorMsg = `Authentication required. This ${detectedPlatform} content requires cookies. Please place a cookies.txt file in the /cookies directory.`;
-          } else {
-            errorMsg = `Authentication failed. Your cookies may be expired or insufficient for this content. Please update your cookies.txt file.`;
-          }
-        } else if (stderr.includes('Unsupported URL')) {
-          errorMsg = `This URL is not supported by ${downloader}. Make sure the URL is correct and points to a valid media page.`;
+        if (stderr.includes('Sign in to confirm your age')) {
+          errorMsg = 'Age-restricted content. Please provide cookies.txt file with authentication.';
+        } else if (stderr.includes('Private video') || stderr.includes('This video is private')) {
+          errorMsg = 'Private video. Please provide cookies.txt file with authentication.';
         } else if (stderr.includes('Video unavailable')) {
-          errorMsg = 'The requested video is unavailable or has been removed.';
-        } else if (stderr.includes('Copyright') || stderr.includes('blocked')) {
-          errorMsg = 'Content is blocked due to copyright or regional restrictions.';
-        } else if (stderr.includes('rate limit') || stderr.includes('Too Many Requests')) {
-          errorMsg = 'Rate limited by the platform. Please try again later.';
+          errorMsg = 'Video is unavailable or has been removed.';
+        } else if (stderr.includes('Please sign in')) {
+          errorMsg = 'Authentication required. Please provide cookies.txt file.';
+        } else if (stderr.includes('Unsupported URL')) {
+          errorMsg = `This URL is not supported by ${downloader}. Make sure the URL is correct.`;
         }
         
-        return resolve({ 
-          success: false, 
-          error: `Download failed: ${errorMsg}`,
-          requiresCookies: requiresCookies,
-          cookiesProvided: cookiesValidated
-        });
+        return resolve({ success: false, error: `Download failed: ${errorMsg}` });
       }
       
       console.log(`✅ Audio downloaded successfully!`);
@@ -814,12 +733,7 @@ async function startYoutubeStream(name, mediaUrl, cookiesPath) {
       console.log(`Platform: ${detectedPlatform}`);
       console.log(`Stream will be available at: /streams/${name}/stream.m3u8\n`);
       
-      resolve({ 
-        success: true, 
-        audioFile: audioOutput, 
-        platform: detectedPlatform,
-        cookiesUsed: cookiesValidated
-      });
+      resolve({ success: true, audioFile: audioOutput, platform: detectedPlatform });
     });
   });
 }

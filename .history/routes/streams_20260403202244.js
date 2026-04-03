@@ -56,24 +56,8 @@ router.post("/youtube/:name", async (req, res) => {
   const { url, cookies } = req.body;
   const name = req.params.name;
   
-  // Validate stream name (alphanumeric, hyphens, underscores only)
-  if (!name || !/^[a-zA-Z0-9_-]+$/.test(name)) {
-    return res.status(400).json({ 
-      error: 'Invalid stream name',
-      message: 'Stream name can only contain letters, numbers, hyphens, and underscores'
-    });
-  }
-  
-  // Validate URL
   if (!url) {
     return res.status(400).send("Media URL is required in request body as 'url'");
-  }
-  
-  // Basic URL validation
-  try {
-    new URL(url);
-  } catch (e) {
-    return res.status(400).json({ error: 'Invalid URL format' });
   }
   
   console.log(`\n🎵 Universal stream request for: ${name}`);
@@ -93,16 +77,11 @@ router.post("/youtube/:name", async (req, res) => {
         success: true,
         message: `Audio stream started successfully`,
         platform: result.platform || 'Unknown',
-        cookiesUsed: result.cookiesUsed || false,
         streamUrl: `${baseUrl}/streams/${name}/stream.m3u8`,
         name: name
       });
     } else {
-      res.status(500).json({ 
-        error: result.error || 'Failed to start stream',
-        requiresCookies: result.requiresCookies || false,
-        cookiesProvided: result.cookiesProvided || false
-      });
+      res.status(500).json({ error: result.error || 'Failed to start stream' });
     }
   } catch (error) {
     console.error(`Error starting universal stream:`, error);
