@@ -3,3 +3,10 @@
 [2026-04-03T19:12:35.916Z] [LOG] Starting stream: al-nas
 [2026-04-03T19:12:35.917Z] [LOG] Input file: D:\github\cloudvia-git\quran-live-m3u8\streams\al-nas\114.mp3
 [2026-04-03T19:30:49.817Z] [LOG] Starting stream: al-nas
+[2026-04-03T20:39:13.085Z] [LOG] Starting stream: test_quran_surah
+[2026-04-03T20:42:10.846Z] [LOG] Starting stream: lecture_islamic
+[2026-04-03T20:42:10.952Z] [LOG] Starting stream: quran_surah_rahman
+[2026-04-03T20:42:11.120Z] [LOG] Starting stream: quran_surah_yasin
+[2026-04-03T20:43:14.373Z] [LOG] Starting stream: lecture_islamic
+[2026-04-03T20:43:14.479Z] [LOG] Starting stream: quran_surah_rahman
+[2026-04-03T20:43:14.598Z] [LOG] Starting stream: quran_surah_yasin

@@ -706,8 +706,6 @@ function restoreStreams() {
   let streamsMetadata = loadStreamsMetadata();
   const validStreams = [];
   
-  console.log('\n🔄 Scanning for existing streams...');
-  
   // First, filter out streams with invalid file paths
   streamsMetadata = streamsMetadata.filter(streamData => {
     // Skip entries with protected/placeholder file paths
@@ -727,82 +725,45 @@ function restoreStreams() {
   });
   
   // Save cleaned metadata (only valid streams)
-  saveStreamsMetadata(streamsMetadata);
-  console.log(`✓ Validated ${streamsMetadata.length} existing stream(s) from metadata`);
+  if (validStreams.length > 0 || streamsMetadata.length > 0) {
+    saveStreamsMetadata(streamsMetadata);
+  }
   
-  // Then, scan the streams folder for any directories with media files
+  // Then, check for any existing streams in the streams folder (legacy support)
   const base = path.join(__dirname, "..", "streams");
-  let discoveredCount = 0;
-  
   if (fs.existsSync(base)) {
-    const folders = fs.readdirSync(base);
-    
-    folders.forEach(name => {
+    fs.readdirSync(base).forEach(name => {
       const folder = path.join(base, name);
-      
-      // Skip if not a directory
       if (!fs.lstatSync(folder).isDirectory()) return;
-      
-      // Skip if already in metadata
-      const existsInMetadata = streamsMetadata.some(s => s.name === name);
-      if (existsInMetadata) return;
-      
-      // Look for media files in this directory
-      const mediaFiles = fs.readdirSync(folder);
-      const audioFiles = mediaFiles.filter(f => 
-        f.match(/\.(mp3|m4a|wav|flac|ogg|aac|wma)$/i)
-      );
-      const videoFiles = mediaFiles.filter(f => 
-        f.match(/\.(mp4|avi|mkv|mov|wmv|flv|webm)$/i)
-      );
-      const playlistFiles = mediaFiles.filter(f => 
-        f.endsWith('.m3u8')
-      );
-      
-      // If we found media files, add this stream to metadata
-      const mediaFile = audioFiles[0] || videoFiles[0];
-      
-      if (mediaFile) {
-        const filePath = path.join(folder, mediaFile);
-        
-        streamsMetadata.push({
-          name: name,
-          filePath: filePath,
-          createdAt: new Date().toISOString(),
-          source: 'auto-discovered'
-        });
-        
-        discoveredCount++;
-        console.log(`✓ Discovered new stream: ${name} (${mediaFile})`);
-      } else if (playlistFiles.length > 0) {
-        // Directory has HLS playlists but no source media - might be an active stream
-        console.log(`ℹ️  Found HLS directory without source media: ${name}`);
+      const mp3 = fs.readdirSync(folder).find(f => f.endsWith(".mp3"));
+      if (mp3) {
+        // Check if this stream is already in metadata
+        const existsInMetadata = streamsMetadata.some(s => s.name === name);
+        if (!existsInMetadata) {
+          // Add legacy streams to metadata
+          streamsMetadata.push({
+            name: name,
+            filePath: path.join(folder, mp3),
+            createdAt: new Date().toISOString()
+          });
+          console.log(`✓ Discovered existing stream: ${name}`);
+        }
       }
     });
   }
   
-  // Save updated metadata (including any discovered streams)
-  if (discoveredCount > 0) {
-    saveStreamsMetadata(streamsMetadata);
-    console.log(`✓ Registered ${discoveredCount} newly discovered stream(s)`);
-  }
+  // Save updated metadata (including any legacy streams found)
+  saveStreamsMetadata(streamsMetadata);
   
   // Start all streams from metadata
-  console.log(`\n🚀 Starting ${streamsMetadata.length} stream(s)...`);
   streamsMetadata.forEach(streamData => {
     if (fs.existsSync(streamData.filePath)) {
       startStream(streamData.name, streamData.filePath);
-      console.log(`✓ Started stream: ${streamData.name}`);
+      console.log(`Restored stream: ${streamData.name}`);
     } else {
-      console.warn(`⚠️  Skipping stream (file not found): ${streamData.name}`);
+      console.warn(`Stream file not found: ${streamData.filePath}`);
     }
   });
-  
-  if (streamsMetadata.length === 0) {
-    console.log('ℹ️  No streams to restore. Upload audio files to create streams.\n');
-  } else {
-    console.log(`\n✅ Stream restoration complete!\n`);
-  }
 }
 
 /**
