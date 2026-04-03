@@ -248,9 +248,6 @@
 
           <!-- Additional Controls -->
           <div class="flex items-center gap-2">
-            <button onclick="cycleVisualizerMode()" class="btn-control bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white px-4 py-3 rounded-lg shadow-md transition-all font-medium" title="Change Visualization Mode">
-              <i class="fas fa-chart-line mr-2"></i>Viz Mode
-            </button>
             <button onclick="stopPlayback()" class="btn-control bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white px-6 py-3 rounded-lg shadow-md transition-all font-medium" title="Stop Playback">
               <i class="fas fa-stop mr-2"></i>Stop
             </button>
@@ -526,23 +523,6 @@ function drawIdleState() {
   }
 }
 
-// Cycle through visualizer modes
-function cycleVisualizerMode() {
-  const modes = ['waveform', 'frequency', 'circular'];
-  const currentIndex = modes.indexOf(visualizerType);
-  visualizerType = modes[(currentIndex + 1) % modes.length];
-  
-  // Update display text
-  const modeNames = {
-    'waveform': 'Waveform Visualization',
-    'frequency': 'Frequency Spectrum',
-    'circular': 'Circular Visualizer'
-  };
-  
-  document.getElementById('vizMode').textContent = modeNames[visualizerType];
-  showMessage(`Visualization mode: ${modeNames[visualizerType]}`, 'info');
-}
-
 // Fetch available streams
 async function refreshStreams() {
   const loadingEl = document.getElementById('streamsLoading');
@@ -635,7 +615,7 @@ function playStream(streamName, streamUrl, element) {
   // Stop current playback
   stopPlayback();
   
-  const audio = document.getElementById('audioPlayer');
+  const video = document.getElementById('videoPlayer');
   currentStreamUrl = streamUrl;
   
   // Update UI
@@ -655,23 +635,16 @@ function playStream(streamName, streamUrl, element) {
       });
       
       hls.loadSource(streamUrl);
-      hls.attachMedia(audio);
+      hls.attachMedia(video);
       
       hls.on(Hls.Events.MANIFEST_PARSED, () => {
         document.getElementById('loadingOverlay').classList.add('hidden');
-        
-        // Initialize audio context for visualizer
-        initAudioContext(audio);
-        
-        audio.play().catch(err => {
+        video.play().catch(err => {
           console.error('Auto-play failed:', err);
           showMessage('Click play button to start', 'info');
         });
         isPlaying = true;
         updatePlayPauseButton();
-        
-        // Start visualizer animation
-        animate();
       });
       
       hls.on(Hls.Events.ERROR, (event, data) => {
@@ -696,36 +669,22 @@ function playStream(streamName, streamUrl, element) {
       
     } else {
       hls.loadSource(streamUrl);
-      
-      // Re-initialize audio context if needed
-      initAudioContext(audio);
-      
-      audio.play();
+      video.play();
       isPlaying = true;
       updatePlayPauseButton();
-      
-      // Restart visualizer
-      animate();
     }
     
-  } else if (audio.canPlayType('application/vnd.apple.mpegurl')) {
+  } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
     // Native HLS support (Safari)
-    audio.src = streamUrl;
-    audio.addEventListener('loadedmetadata', () => {
+    video.src = streamUrl;
+    video.addEventListener('loadedmetadata', () => {
       document.getElementById('loadingOverlay').classList.add('hidden');
-      
-      // Initialize audio context for visualizer
-      initAudioContext(audio);
-      
-      audio.play();
+      video.play();
       isPlaying = true;
       updatePlayPauseButton();
-      
-      // Start visualizer
-      animate();
     });
     
-    audio.addEventListener('error', () => {
+    video.addEventListener('error', () => {
       document.getElementById('loadingOverlay').classList.add('hidden');
       showMessage('Failed to load stream', 'error');
     });
@@ -737,7 +696,7 @@ function playStream(streamName, streamUrl, element) {
 
 // Toggle play/pause
 function togglePlayPause() {
-  const audio = document.getElementById('audioPlayer');
+  const video = document.getElementById('videoPlayer');
   
   if (!currentStreamUrl) {
     showMessage('Select a stream first', 'info');
@@ -745,18 +704,11 @@ function togglePlayPause() {
   }
   
   if (isPlaying) {
-    audio.pause();
+    video.pause();
     isPlaying = false;
   } else {
-    // Resume audio context if suspended
-    if (audioContext && audioContext.state === 'suspended') {
-      audioContext.resume();
-    }
-    audio.play();
+    video.play();
     isPlaying = true;
-    
-    // Restart visualizer
-    animate();
   }
   
   updatePlayPauseButton();
@@ -778,11 +730,11 @@ function updatePlayPauseButton() {
 
 // Stop playback
 function stopPlayback() {
-  const audio = document.getElementById('audioPlayer');
+  const video = document.getElementById('videoPlayer');
   
-  if (audio) {
-    audio.pause();
-    audio.currentTime = 0;
+  if (video) {
+    video.pause();
+    video.currentTime = 0;
   }
   
   if (hls) {
@@ -794,67 +746,58 @@ function stopPlayback() {
   currentStreamUrl = null;
   updatePlayPauseButton();
   
-  // Stop visualizer animation
-  if (animationId) {
-    cancelAnimationFrame(animationId);
-    animationId = null;
-  }
-  
   document.getElementById('currentStreamInfo').classList.add('hidden');
   document.getElementById('noStreamInfo').classList.remove('hidden');
   document.getElementById('playingStatus').textContent = 'None';
   
   // Remove active state from list
   document.querySelectorAll('.stream-item').forEach(el => el.classList.remove('active'));
-  
-  // Return to idle state
-  drawIdleState();
 }
 
 // Volume controls
 function setVolume(value) {
-  const audio = document.getElementById('audioPlayer');
-  if (audio) audio.volume = parseFloat(value);
+  const video = document.getElementById('videoPlayer');
+  if (video) video.volume = parseFloat(value);
 }
 
 function adjustVolume(delta) {
-  const audio = document.getElementById('audioPlayer');
-  if (!audio) return;
+  const video = document.getElementById('videoPlayer');
+  if (!video) return;
   
-  const newVolume = Math.max(0, Math.min(1, audio.volume + delta));
-  audio.volume = newVolume;
+  const newVolume = Math.max(0, Math.min(1, video.volume + delta));
+  video.volume = newVolume;
   document.getElementById('volumeSlider').value = newVolume;
 }
 
-// Setup audio event listeners
-function setupAudioListeners() {
-  const audio = document.getElementById('audioPlayer');
+// Setup video event listeners
+function setupVideoListeners() {
+  const video = document.getElementById('videoPlayer');
   
-  audio.addEventListener('play', () => {
+  video.addEventListener('play', () => {
     isPlaying = true;
     updatePlayPauseButton();
   });
   
-  audio.addEventListener('pause', () => {
+  video.addEventListener('pause', () => {
     isPlaying = false;
     updatePlayPauseButton();
   });
   
-  audio.addEventListener('ended', () => {
+  video.addEventListener('ended', () => {
     isPlaying = false;
     updatePlayPauseButton();
   });
   
-  audio.addEventListener('waiting', () => {
+  video.addEventListener('waiting', () => {
     document.getElementById('loadingOverlay').classList.remove('hidden');
   });
   
-  audio.addEventListener('playing', () => {
+  video.addEventListener('playing', () => {
     document.getElementById('loadingOverlay').classList.add('hidden');
   });
   
-  audio.addEventListener('error', (e) => {
-    console.error('Audio error:', e);
+  video.addEventListener('error', (e) => {
+    console.error('Video error:', e);
     document.getElementById('loadingOverlay').classList.add('hidden');
     showMessage('Playback error occurred', 'error');
   });

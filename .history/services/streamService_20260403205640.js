@@ -462,16 +462,6 @@ function stopStream(name) {
     if (ent.process && !ent.process.killed) {
       console.log(`Stopping spawned FFmpeg process ${name} (PID: ${ent.pid})`);
       
-      // Clear monitoring intervals
-      if (ent.watchdogInterval) {
-        clearInterval(ent.watchdogInterval);
-        console.log(`✓ Stopped watchdog timer`);
-      }
-      if (ent.healthCheckInterval) {
-        clearInterval(ent.healthCheckInterval);
-        console.log(`✓ Stopped health check timer`);
-      }
-      
       // Send SIGTERM for graceful shutdown
       ent.process.kill('SIGTERM');
       console.log(`Sent SIGTERM to process ${ent.pid}`);

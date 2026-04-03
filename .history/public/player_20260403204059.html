@@ -526,23 +526,6 @@ function drawIdleState() {
   }
 }
 
-// Cycle through visualizer modes
-function cycleVisualizerMode() {
-  const modes = ['waveform', 'frequency', 'circular'];
-  const currentIndex = modes.indexOf(visualizerType);
-  visualizerType = modes[(currentIndex + 1) % modes.length];
-  
-  // Update display text
-  const modeNames = {
-    'waveform': 'Waveform Visualization',
-    'frequency': 'Frequency Spectrum',
-    'circular': 'Circular Visualizer'
-  };
-  
-  document.getElementById('vizMode').textContent = modeNames[visualizerType];
-  showMessage(`Visualization mode: ${modeNames[visualizerType]}`, 'info');
-}
-
 // Fetch available streams
 async function refreshStreams() {
   const loadingEl = document.getElementById('streamsLoading');

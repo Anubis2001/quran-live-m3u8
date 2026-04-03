@@ -290,7 +290,7 @@ function startStream(name, filePath) {
     }
   });
   
-  // Store process info with interval IDs for cleanup
+  // Store process info
   runningStreams[name] = { 
     pid: ffmpegProcess.pid,
     process: ffmpegProcess,
@@ -302,9 +302,7 @@ function startStream(name, filePath) {
     logFile: logPath,
     status: 'running',
     lastSegmentTime: Date.now(),
-    segmentCount: 0,
-    watchdogInterval: watchdogInterval,
-    healthCheckInterval: healthCheckInterval
+    segmentCount: 0
   };
   
   console.log(`\n📊 Stream tracking info:`);
@@ -461,16 +459,6 @@ function stopStream(name) {
     // Handle spawned FFmpeg processes
     if (ent.process && !ent.process.killed) {
       console.log(`Stopping spawned FFmpeg process ${name} (PID: ${ent.pid})`);
-      
-      // Clear monitoring intervals
-      if (ent.watchdogInterval) {
-        clearInterval(ent.watchdogInterval);
-        console.log(`✓ Stopped watchdog timer`);
-      }
-      if (ent.healthCheckInterval) {
-        clearInterval(ent.healthCheckInterval);
-        console.log(`✓ Stopped health check timer`);
-      }
       
       // Send SIGTERM for graceful shutdown
       ent.process.kill('SIGTERM');

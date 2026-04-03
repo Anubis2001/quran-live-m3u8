@@ -160,7 +160,7 @@ function startStream(name, filePath) {
   console.log(`\n🚀 STARTING FFMPEG WITH SPAWN (DETACHED MODE):`);
   console.log(`This approach provides better process control and error handling\n`);
   
-  // Build FFmpeg arguments array with optimizations for large files
+  // Build FFmpeg arguments array
   const ffmpegArgs = [
     '-re',                                    // Read input at native frame rate
     '-stream_loop', '-1',                     // Infinite loop
@@ -172,9 +172,6 @@ function startStream(name, filePath) {
     '-hls_flags', 'delete_segments+round_durations',
     '-hls_segment_filename', outputSegment,
     '-hls_segment_type', 'mpegts',
-    '-max_muxing_queue_size', '1024',         // Increase queue size for large files
-    '-thread_queue_size', '512',              // Increase thread queue size
-    '-bufsize', '64M',                        // Set buffer size
     outputPlaylist                            // Output playlist
   ];
   
@@ -236,30 +233,8 @@ function startStream(name, filePath) {
   // Handle process exit
   ffmpegProcess.on('exit', (code, signal) => {
     console.log(`\n🛑 FFmpeg process exited with code: ${code}, signal: ${signal}`);
-    
-    // Stop watchdog
-    if (watchdogInterval) {
-      clearInterval(watchdogInterval);
-      watchdogInterval = null;
-    }
-    
     if (logStream) {
       logStream.write(`\n=== PROCESS EXITED: code=${code}, signal=${signal} at ${new Date().toISOString()} ===\n`);
-      
-      // Add diagnostic information
-      try {
-        const segments = fs.readdirSync(dir).filter(f => f.match(/^seg_\d+\.ts$/));
-        logStream.write(`Total segments created: ${segments.length}\n`);
-        
-        if (fs.existsSync(outputPlaylist)) {
-          const playlistContent = fs.readFileSync(outputPlaylist, 'utf8');
-          const playlistLines = playlistContent.split('\n').length;
-          logStream.write(`Playlist entries: ${playlistLines}\n`);
-        }
-      } catch (diagErr) {
-        logStream.write(`Error gathering diagnostics: ${diagErr.message}\n`);
-      }
-      
       logStream.end();
     }
     
@@ -267,7 +242,6 @@ function startStream(name, filePath) {
     if (runningStreams[name]) {
       if (code !== 0 && signal !== 'SIGTERM') {
         console.error(`❌ FFmpeg exited abnormally! Check logs for details.`);
-        console.error(`   Log file: ${logPath}`);
         runningStreams[name].status = 'failed';
       }
     } else {
@@ -290,7 +264,7 @@ function startStream(name, filePath) {
     }
   });
   
-  // Store process info with interval IDs for cleanup
+  // Store process info
   runningStreams[name] = { 
     pid: ffmpegProcess.pid,
     process: ffmpegProcess,
@@ -302,9 +276,7 @@ function startStream(name, filePath) {
     logFile: logPath,
     status: 'running',
     lastSegmentTime: Date.now(),
-    segmentCount: 0,
-    watchdogInterval: watchdogInterval,
-    healthCheckInterval: healthCheckInterval
+    segmentCount: 0
   };
   
   console.log(`\n📊 Stream tracking info:`);
@@ -357,37 +329,6 @@ function startStream(name, filePath) {
   
   // Start watchdog monitoring (check every 15 seconds)
   watchdogInterval = setInterval(checkSegmentProgress, 15000);
-  
-  // Periodic health check - log status every 30 seconds
-  const healthCheckInterval = setInterval(() => {
-    try {
-      if (!runningStreams[name] || runningStreams[name].status !== 'running') {
-        clearInterval(healthCheckInterval);
-        return;
-      }
-      
-      // Check process is still alive
-      try {
-        process.kill(ffmpegProcess.pid, 0);
-        
-        // Get current segment count
-        const segments = fs.readdirSync(dir).filter(f => f.match(/^seg_\d+\.ts$/));
-        const uptime = Math.round((Date.now() - runningStreams[name].startTime.getTime()) / 1000);
-        
-        console.log(`💓 Health check [${uptime}s]: Process alive, ${segments.length} segments created`);
-        
-        if (logStream) {
-          logStream.write(`[HEALTH] Uptime: ${uptime}s, Segments: ${segments.length}, PID: ${ffmpegProcess.pid}\n`);
-        }
-      } catch (e) {
-        console.error(`❌ Health check failed: Process died!`);
-        clearInterval(healthCheckInterval);
-        if (watchdogInterval) clearInterval(watchdogInterval);
-      }
-    } catch (healthErr) {
-      console.error(`Health check error:`, healthErr.message);
-    }
-  }, 30000);
   
   // Monitor file creation with aggressive checks
   console.log(`⏱️ Monitoring file creation...`);
@@ -461,16 +402,6 @@ function stopStream(name) {
     // Handle spawned FFmpeg processes
     if (ent.process && !ent.process.killed) {
       console.log(`Stopping spawned FFmpeg process ${name} (PID: ${ent.pid})`);
-      
-      // Clear monitoring intervals
-      if (ent.watchdogInterval) {
-        clearInterval(ent.watchdogInterval);
-        console.log(`✓ Stopped watchdog timer`);
-      }
-      if (ent.healthCheckInterval) {
-        clearInterval(ent.healthCheckInterval);
-        console.log(`✓ Stopped health check timer`);
-      }
       
       // Send SIGTERM for graceful shutdown
       ent.process.kill('SIGTERM');

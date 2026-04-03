@@ -248,9 +248,6 @@
 
           <!-- Additional Controls -->
           <div class="flex items-center gap-2">
-            <button onclick="cycleVisualizerMode()" class="btn-control bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white px-4 py-3 rounded-lg shadow-md transition-all font-medium" title="Change Visualization Mode">
-              <i class="fas fa-chart-line mr-2"></i>Viz Mode
-            </button>
             <button onclick="stopPlayback()" class="btn-control bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white px-6 py-3 rounded-lg shadow-md transition-all font-medium" title="Stop Playback">
               <i class="fas fa-stop mr-2"></i>Stop
             </button>
@@ -524,23 +521,6 @@ function drawIdleState() {
   if (!isPlaying) {
     requestAnimationFrame(drawIdleState);
   }
-}
-
-// Cycle through visualizer modes
-function cycleVisualizerMode() {
-  const modes = ['waveform', 'frequency', 'circular'];
-  const currentIndex = modes.indexOf(visualizerType);
-  visualizerType = modes[(currentIndex + 1) % modes.length];
-  
-  // Update display text
-  const modeNames = {
-    'waveform': 'Waveform Visualization',
-    'frequency': 'Frequency Spectrum',
-    'circular': 'Circular Visualizer'
-  };
-  
-  document.getElementById('vizMode').textContent = modeNames[visualizerType];
-  showMessage(`Visualization mode: ${modeNames[visualizerType]}`, 'info');
 }
 
 // Fetch available streams

@@ -124,6 +124,27 @@ function setupAuthentication(app) {
   
   // Debug endpoints also require admin authentication
   app.use("/__debug", authMiddleware, requireAdmin);
+  
+  // CRITICAL: Block any attempts to access middleware or source files
+  app.use((req, res, next) => {
+    // Block access to sensitive directories
+    const blockedPaths = [
+      '/middleware',
+      '/routes',
+      '/services',
+      '/utils',
+      '/node_modules'
+    ];
+    
+    const requestedPath = req.path.toLowerCase();
+    if (blockedPaths.some(blocked => requestedPath.startsWith(blocked))) {
+      return res.status(403).json({
+        error: 'Forbidden',
+        message: 'Access to application source code is not allowed'
+      });
+    }
+    next();
+  });
 }
 
 module.exports = { setupAuthentication };

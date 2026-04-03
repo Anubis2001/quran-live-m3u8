@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Universal Audio Streamer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+        
+        h1 {
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+        
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 600;
+        }
+        
+        input[type="text"],
+        input[type="url"] {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+        
+        input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            margin-right: 10px;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn:active {
+            transform: translateY(0);
+        }
+        
+        .btn-stop {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+        
+        .btn-secondary {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        }
+        
+        .status-box {
+            margin-top: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            border-left: 4px solid #667eea;
+        }
+        
+        .status-box h3 {
+            color: #667eea;
+            margin-bottom: 15px;
+        }
+        
+        .stream-item {
+            background: white;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 8px;
+            border: 1px solid #e0e0e0;
+        }
+        
+        .stream-item strong {
+            color: #667eea;
+        }
+        
+        .success {
+            color: #22c55e;
+        }
+        
+        .error {
+            color: #ef4444;
+        }
+        
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(102, 126, 234, 0.3);
+            border-radius: 50%;
+            border-top-color: #667eea;
+            animation: spin 1s ease-in-out infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .audio-player {
+            margin-top: 15px;
+            width: 100%;
+        }
+        
+        code {
+            background: #f0f0f0;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+            color: #d63384;
+        }
+        
+        .platforms-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        .platform-badge {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 6px;
+            text-align: center;
+            font-size: 12px;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <h1>🎵 Universal Audio Streamer</h1>
+            <a href="/dashboard.html" class="btn btn-secondary" style="text-decoration: none; display: inline-flex; align-items: center; gap: 8px;">
+                <i class="fas fa-arrow-left"></i> Return to Main Page
+            </a>
+        </div>
+        <p class="subtitle">Stream audio from any platform as HLS playlists with infinite looping</p>
+        
+        <div style="background: #f0f9ff; border-left: 4px solid #667eea; padding: 15px; margin-bottom: 20px; border-radius: 8px;">
+            <p style="color: #667eea; font-weight: 600; margin-bottom: 10px;">🌟 Supported Platforms:</p>
+            <div class="platforms-grid">
+                <div class="platform-badge">YouTube</div>
+                <div class="platform-badge">Instagram</div>
+                <div class="platform-badge">SoundCloud</div>
+                <div class="platform-badge">TikTok</div>
+                <div class="platform-badge">Twitter/X</div>
+                <div class="platform-badge">Facebook</div>
+                <div class="platform-badge">Vimeo</div>
+                <div class="platform-badge">Twitch</div>
+                <div class="platform-badge">+1000 more</div>
+            </div>
+        </div>
+        
+        <div class="form-group">
+            <label for="streamName">Stream Name:</label>
+            <input type="text" id="streamName" placeholder="e.g., my-audio-stream" value="universal-test">
+        </div>
+        
+        <div class="form-group">
+            <label for="mediaUrl">Media URL:</label>
+            <input type="url" id="mediaUrl" placeholder="https://www.youtube.com/watch?v=... or any supported platform URL">
+        </div>
+        
+        <div style="background: #f0f9ff; border-left: 4px solid #667eea; padding: 15px; margin-bottom: 20px; border-radius: 8px;">
+            <p style="color: #667eea; font-weight: 600; margin-bottom: 10px;">🍪 Authentication:</p>
+            <p style="color: #666; font-size: 14px; margin-bottom: 8px;">
+                Cookies are automatically detected from the secure <code>/cookies</code> directory.
+            </p>
+            <p style="color: #666; font-size: 13px;">
+                <strong>To add authentication:</strong> Place your cookies.txt file in the <code>cookies/</code> folder on the server.
+                Supported formats: Netscape HTTP Cookie File (export from browser extensions).
+            </p>
+        </div>
+        
+        <div style="margin-top: 20px;">
+            <button class="btn" onclick="startStream()" id="startBtn">
+                🚀 Start Stream
+            </button>
+            <button class="btn btn-stop" onclick="stopStream()" id="stopBtn">
+                ⏹️ Stop Stream
+            </button>
+            <button class="btn" onclick="loadStreams()" id="refreshBtn">
+                🔄 Refresh
+            </button>
+        </div>
+        
+        <div class="status-box" id="statusBox">
+            <h3>📊 Status</h3>
+            <div id="statusContent">Click "Refresh" to load active streams</div>
+        </div>
+    </div>
+
+    <script>
+        const SERVER_URL = window.location.origin;
+        const AUTH_HEADER = 'Basic YWRtaW46QCFKS0YzZVdkMTI=';
+        
+        async function startStream() {
+            const name = document.getElementById('streamName').value.trim();
+            const url = document.getElementById('mediaUrl').value.trim();
+            
+            if (!name || !url) {
+                alert('Please enter both stream name and media URL');
+                return;
+            }
+            
+            const btn = document.getElementById('startBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="loading"></span> Starting...';
+            
+            try {
+                const requestBody = { url: url };
+                // Cookies are auto-detected from server's /cookies directory
+                
+                const response = await fetch(`${SERVER_URL}/api/streams/youtube/${name}`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': AUTH_HEADER,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(requestBody)
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    const authInfo = data.cookiesUsed ? '<br><strong>🍪 Authenticated:</strong> Yes (using server cookies)' : '';
+                    const platformInfo = data.platform ? `<br><strong>🎯 Platform:</strong> ${data.platform}` : '';
+                    document.getElementById('statusContent').innerHTML = `
+                        <div class="success">
+                            <strong>✅ Stream started successfully!</strong><br><br>
+                            <strong>Name:</strong> ${data.name}${platformInfo}<br>
+                            <strong>Stream URL:</strong> <code>${data.streamUrl}</code>${authInfo}<br><br>
+                            <audio controls class="audio-player">
+                                <source src="${data.streamUrl}" type="application/vnd.apple.mpegurl">
+                                Your browser does not support HLS playback.
+                            </audio>
+                        </div>
+                    `;
+                    loadStreams();
+                } else {
+                    const error = await response.json();
+                    let errorMessage = error.error || 'Failed to start stream';
+                    
+                    // Add helpful message if cookies are required
+                    if (error.requiresCookies && !error.cookiesProvided) {
+                        errorMessage += '<br><br><strong>💡 Solution:</strong> Please place a cookies.txt file in the server\'s <code>/cookies</code> directory.';
+                    } else if (error.requiresCookies && error.cookiesProvided) {
+                        errorMessage += '<br><br><strong>💡 Solution:</strong> Your cookies may be expired. Please update the cookies.txt file in the <code>/cookies</code> directory.';
+                    }
+                    
+                    throw new Error(errorMessage);
+                }
+            } catch (error) {
+                document.getElementById('statusContent').innerHTML = `
+                    <div class="error">
+                        <strong>❌ Error:</strong> ${error.message}
+                    </div>
+                `;
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '🚀 Start Stream';
+            }
+        }
+        
+        async function stopStream() {
+            const name = document.getElementById('streamName').value.trim();
+            
+            if (!name) {
+                alert('Please enter a stream name');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${SERVER_URL}/api/streams/${name}/stop`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': AUTH_HEADER
+                    }
+                });
+                
+                if (response.ok) {
+                    document.getElementById('statusContent').innerHTML = `
+                        <div class="success">
+                            <strong>✅ Stream stopped!</strong>
+                        </div>
+                    `;
+                    loadStreams();
+                } else {
+                    const error = await response.text();
+                    throw new Error(error);
+                }
+            } catch (error) {
+                document.getElementById('statusContent').innerHTML = `
+                    <div class="error">
+                        <strong>❌ Error:</strong> ${error.message}
+                    </div>
+                `;
+            }
+        }
+        
+        async function loadStreams() {
+            const statusContent = document.getElementById('statusContent');
+            statusContent.innerHTML = '<span class="loading"></span> Loading...';
+            
+            try {
+                const response = await fetch(`${SERVER_URL}/api/streams`);
+                const streams = await response.json();
+                
+                if (streams.length === 0) {
+                    statusContent.innerHTML = '<p>No active streams</p>';
+                    return;
+                }
+                
+                let html = '';
+                streams.forEach(stream => {
+                    const statusColor = stream.status === 'running' ? '#22c55e' : '#ef4444';
+                    html += `
+                        <div class="stream-item">
+                            <strong>${stream.name}</strong><br>
+                            <span style="color: ${statusColor}">● ${stream.status.toUpperCase()}</span><br>
+                            <small>Created: ${new Date(stream.createdAt).toLocaleString()}</small><br>
+                            <code>${stream.url}</code><br>
+                            <audio controls style="margin-top: 10px; width: 100%;">
+                                <source src="${stream.url}" type="application/vnd.apple.mpegurl">
+                                Your browser does not support HLS
+                            </audio>
+                        </div>
+                    `;
+                });
+                
+                statusContent.innerHTML = html;
+            } catch (error) {
+                statusContent.innerHTML = `
+                    <div class="error">
+                        <strong>❌ Error loading streams:</strong> ${error.message}
+                    </div>
+                `;
+            }
+        }
+        
+        // Load streams on page load
+        loadStreams();
+    </script>
+</body>
+</html>

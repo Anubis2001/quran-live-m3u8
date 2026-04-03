@@ -1,0 +1,23 @@
+# Cookies Directory
+
+This directory stores cookies.txt files for authenticating with media platforms.
+
+## Security
+- This directory is automatically excluded from web access
+- Only the server process can read/write here
+- Files should be in Netscape HTTP Cookie format
+
+## Usage
+Place your cookies.txt file(s) in this directory. The system will automatically use them when downloading content.
+
+## How to Export Cookies
+1. Use browser extension like "Get cookies.txt LOCALLY" (Chrome/Firefox)
+2. Export cookies from the site you want to access
+3. Save as `cookies.txt` or `platform-cookies.txt` in this folder
+4. Ensure file permissions allow server read access
+
+## Supported File Names
+- cookies.txt (default)
+- youtube-cookies.txt
+- instagram-cookies.txt
+- Any .txt file will be auto-detected

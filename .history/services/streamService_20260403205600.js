@@ -290,7 +290,7 @@ function startStream(name, filePath) {
     }
   });
   
-  // Store process info with interval IDs for cleanup
+  // Store process info
   runningStreams[name] = { 
     pid: ffmpegProcess.pid,
     process: ffmpegProcess,
@@ -302,9 +302,7 @@ function startStream(name, filePath) {
     logFile: logPath,
     status: 'running',
     lastSegmentTime: Date.now(),
-    segmentCount: 0,
-    watchdogInterval: watchdogInterval,
-    healthCheckInterval: healthCheckInterval
+    segmentCount: 0
   };
   
   console.log(`\n📊 Stream tracking info:`);
@@ -357,37 +355,6 @@ function startStream(name, filePath) {
   
   // Start watchdog monitoring (check every 15 seconds)
   watchdogInterval = setInterval(checkSegmentProgress, 15000);
-  
-  // Periodic health check - log status every 30 seconds
-  const healthCheckInterval = setInterval(() => {
-    try {
-      if (!runningStreams[name] || runningStreams[name].status !== 'running') {
-        clearInterval(healthCheckInterval);
-        return;
-      }
-      
-      // Check process is still alive
-      try {
-        process.kill(ffmpegProcess.pid, 0);
-        
-        // Get current segment count
-        const segments = fs.readdirSync(dir).filter(f => f.match(/^seg_\d+\.ts$/));
-        const uptime = Math.round((Date.now() - runningStreams[name].startTime.getTime()) / 1000);
-        
-        console.log(`💓 Health check [${uptime}s]: Process alive, ${segments.length} segments created`);
-        
-        if (logStream) {
-          logStream.write(`[HEALTH] Uptime: ${uptime}s, Segments: ${segments.length}, PID: ${ffmpegProcess.pid}\n`);
-        }
-      } catch (e) {
-        console.error(`❌ Health check failed: Process died!`);
-        clearInterval(healthCheckInterval);
-        if (watchdogInterval) clearInterval(watchdogInterval);
-      }
-    } catch (healthErr) {
-      console.error(`Health check error:`, healthErr.message);
-    }
-  }, 30000);
   
   // Monitor file creation with aggressive checks
   console.log(`⏱️ Monitoring file creation...`);
@@ -461,16 +428,6 @@ function stopStream(name) {
     // Handle spawned FFmpeg processes
     if (ent.process && !ent.process.killed) {
       console.log(`Stopping spawned FFmpeg process ${name} (PID: ${ent.pid})`);
-      
-      // Clear monitoring intervals
-      if (ent.watchdogInterval) {
-        clearInterval(ent.watchdogInterval);
-        console.log(`✓ Stopped watchdog timer`);
-      }
-      if (ent.healthCheckInterval) {
-        clearInterval(ent.healthCheckInterval);
-        console.log(`✓ Stopped health check timer`);
-      }
       
       // Send SIGTERM for graceful shutdown
       ent.process.kill('SIGTERM');
